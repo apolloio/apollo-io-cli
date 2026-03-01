@@ -1,0 +1,15 @@
+{
+  "name": "apollo-io-cli",
+  "version": "0.1.0",
+  "description": "CLI for the Apollo.io API",
+  "type": "module",
+  "bin": {
+    "apollo": "./src/index.js"
+  },
+  "scripts": {
+    "start": "node src/index.js"
+  },
+  "dependencies": {
+    "commander": "^12.1.0"
+  }
+}
