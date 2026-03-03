@@ -4,12 +4,29 @@ A command-line interface for the [Apollo.io API](https://apolloio.github.io/apol
 
 ## Installation
 
+### Download a prebuilt binary (no Node required)
+
+Download the latest binary for your platform from the [releases page](https://github.com/apolloio/apollo-io-cli/releases):
+
+| Platform | File |
+|---|---|
+| macOS (Apple Silicon) | `apollo-macos-arm64` |
+| macOS (Intel) | `apollo-macos-x64` |
+| Linux (x64) | `apollo-linux-x64` |
+
+Then make it executable and move it to your PATH:
+
+```bash
+chmod +x apollo-macos-arm64
+mv apollo-macos-arm64 /usr/local/bin/apollo
+```
+
+### From source (requires Node 18+)
+
 ```bash
 npm install
 npm link        # makes `apollo` available globally
 ```
-
-Requires Node 18+.
 
 ## Authentication
 
