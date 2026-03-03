@@ -19,6 +19,7 @@ Then make it executable and move it to your PATH:
 ```bash
 chmod +x apollo-macos-arm64
 mv apollo-macos-arm64 /usr/local/bin/apollo
+xattr -d com.apple.quarantine /usr/local/bin/apollo
 ```
 
 ### From source (requires Node 18+)
