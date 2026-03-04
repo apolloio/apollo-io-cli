@@ -9,7 +9,7 @@ export function registerPeople(program) {
     .description('Search for people in Apollo\'s database')
     .option('-q, --query <query>', 'Name or keyword query')
     .option('--title <titles...>', 'Job title(s) to filter by')
-    .option('--location <locations...>', 'Location(s) to filter by')
+    .option('--city <locations...>', 'Location(s) to filter by')
     .option('--seniority <levels...>', 'Seniority level(s) (e.g. manager director vp c_suite)')
     .option('--department <depts...>', 'Department(s) to filter by (e.g. engineering sales)')
     .option('--technology <techs...>', 'Technology UIDs the person\'s company uses')
@@ -25,14 +25,14 @@ export function registerPeople(program) {
 
       if (opts.query) body.q_keywords = opts.query;
       if (opts.title) body.person_titles = opts.title;
-      if (opts.location) body.person_locations = opts.location;
+      if (opts.city) body.person_locations = opts.city;
       if (opts.seniority) body.person_seniorities = opts.seniority;
       if (opts.department) body.person_departments = opts.department;
       if (opts.technology) body.currently_using_any_of_technology_uids = opts.technology;
       if (opts.domain) body.q_organization_domains_list = opts.domain;
       if (opts.industry) body.organization_industry_tag_ids = opts.industry;
 
-      const data = await apolloRequest('/mixed_people/search', body);
+      const data = await apolloRequest('/mixed_people/api_search', body);
       print(data);
     });
 
@@ -95,7 +95,7 @@ export function registerPeople(program) {
       if (opts.domain) body.q_organization_domains_list = [opts.domain];
       if (opts.linkedin) body.organization_linkedin_url = opts.linkedin;
 
-      const data = await apolloRequest('/mixed_people/search', body);
+      const data = await apolloRequest('/mixed_people/api_search', body);
       print(data);
     });
 }

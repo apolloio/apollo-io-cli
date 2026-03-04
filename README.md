@@ -53,7 +53,7 @@ The API key is resolved in this order:
 Search Apollo's database for people.
 
 ```bash
-apollo people search --title "VP Engineering" --location "San Francisco"
+apollo people search --title "VP Engineering" --city "San Francisco"
 apollo people search --title "CTO" --seniority c_suite --domain stripe.com
 apollo people search --department engineering --technology react --per-page 25
 ```
@@ -62,7 +62,7 @@ apollo people search --department engineering --technology react --per-page 25
 |---|---|
 | `-q, --query` | Name or keyword query |
 | `--title` | Job title(s) |
-| `--location` | Location(s) (city, state, country) |
+| `--city` | Location(s) (city, state, country) |
 | `--seniority` | Seniority level(s): `manager` `director` `vp` `c_suite` etc. |
 | `--department` | Department(s): `engineering` `sales` `marketing` etc. |
 | `--technology` | Technology UIDs the person's company uses |
@@ -211,7 +211,7 @@ All commands output JSON to stdout, making them composable with `jq`:
 
 ```bash
 # Get names and titles of VP Engineering at Stripe
-apollo people search --title "VP Engineering" --domain stripe.com \
+apollo people search --title "VP Engineering" --city "San Francisco" --domain stripe.com \
   | jq '.people[] | {name: .name, title: .title}'
 
 # Get all job posting titles at a company
