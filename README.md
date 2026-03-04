@@ -2,6 +2,8 @@
 
 A command-line interface for the [Apollo.io API](https://apolloio.github.io/apollo-api-docs/). Search and enrich people and companies, find job postings, and surface news — all from your terminal, pipeable with `jq`.
 
+<img width="1908" height="2294" alt="image" src="https://github.com/user-attachments/assets/eb7ebc43-1c64-466d-8959-e9c6e185433a" />
+
 ## Installation
 
 ### Download a prebuilt binary (no Node required)
