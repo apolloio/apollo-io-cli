@@ -17,6 +17,7 @@ export async function apolloRequest(path, body = {}) {
     headers: {
       'Content-Type': 'application/json',
       'Cache-Control': 'no-cache',
+      'User-Agent': 'apollo-io-cli/1.0',
       ...getAuthHeaders(),
     },
     body: JSON.stringify(body),
