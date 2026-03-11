@@ -1,30 +1,24 @@
-import { readFileSync, existsSync } from 'fs';
-import { join } from 'path';
-import { homedir } from 'os';
+import { loadCredentials } from './credentials.js';
 
-const CREDENTIALS_PATH = join(homedir(), '.config', 'apollo', 'credentials');
 const BASE_URL = 'https://api.apollo.io/api/v1';
 
-function getApiKey() {
-  if (process.env.APOLLO_API_KEY) return process.env.APOLLO_API_KEY;
-
-  if (existsSync(CREDENTIALS_PATH)) {
-    return readFileSync(CREDENTIALS_PATH, 'utf8').trim();
+function getAuthHeaders() {
+  const creds = loadCredentials();
+  if (!creds) {
+    console.error('Not logged in. Run: apollo auth login');
+    process.exit(1);
   }
-
-  console.error('No API key found. Run: apollo auth login <api-key>');
-  process.exit(1);
+  return { 'Authorization': `Bearer ${creds.access_token}` };
 }
 
 export async function apolloRequest(path, body = {}) {
-  const apiKey = getApiKey();
-
   const res = await fetch(`${BASE_URL}${path}`, {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
       'Cache-Control': 'no-cache',
-      'X-Api-Key': apiKey,
+      'User-Agent': 'apollo-io-cli/1.0',
+      ...getAuthHeaders(),
     },
     body: JSON.stringify(body),
   });

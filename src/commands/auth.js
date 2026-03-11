@@ -1,44 +1,49 @@
-import { mkdirSync, writeFileSync, unlinkSync, existsSync, readFileSync } from 'fs';
-import { join, dirname } from 'path';
-import { homedir } from 'os';
-
-const CREDENTIALS_PATH = join(homedir(), '.config', 'apollo', 'credentials');
+import { saveOAuthCredentials, clearCredentials, loadCredentials } from '../credentials.js';
+import { oauthLogin, revokeToken } from '../oauth.js';
 
 export function registerAuth(program) {
   const auth = program.command('auth').description('Manage Apollo.io credentials');
 
   auth
-    .command('login <api-key>')
-    .description('Save an API key to ~/.config/apollo/credentials')
-    .action((apiKey) => {
-      mkdirSync(dirname(CREDENTIALS_PATH), { recursive: true });
-      writeFileSync(CREDENTIALS_PATH, apiKey, { mode: 0o600 });
-      console.log(`Saved API key to ${CREDENTIALS_PATH}`);
+    .command('login')
+    .description('Log in to Apollo.io via browser')
+    .action(async () => {
+      try {
+        const tokens = await oauthLogin();
+        saveOAuthCredentials(tokens);
+        console.log('Successfully logged in.');
+        process.exit(0);
+      } catch (err) {
+        console.error(`Login failed: ${err.message}`);
+        process.exit(1);
+      }
     });
 
   auth
     .command('logout')
     .description('Remove saved credentials')
-    .action(() => {
-      if (existsSync(CREDENTIALS_PATH)) {
-        unlinkSync(CREDENTIALS_PATH);
-        console.log('Credentials removed.');
-      } else {
+    .action(async () => {
+      const creds = loadCredentials();
+      if (!creds) {
         console.log('No credentials found.');
+        return;
       }
+      if (creds.type === 'oauth' && creds.access_token) {
+        await revokeToken(creds.access_token, creds.client_id).catch(() => {});
+      }
+      clearCredentials();
+      console.log('Logged out.');
     });
 
   auth
     .command('whoami')
-    .description('Show which API key is active')
+    .description('Show current credentials')
     .action(() => {
-      if (process.env.APOLLO_API_KEY) {
-        console.log(`APOLLO_API_KEY env var (${process.env.APOLLO_API_KEY.slice(0, 8)}...)`);
-      } else if (existsSync(CREDENTIALS_PATH)) {
-        const key = readFileSync(CREDENTIALS_PATH, 'utf8').trim();
-        console.log(`~/.config/apollo/credentials (${key.slice(0, 8)}...)`);
+      const creds = loadCredentials();
+      if (!creds) {
+        console.log('Not logged in.');
       } else {
-        console.log('No credentials found.');
+        console.log('Logged in via OAuth.');
       }
     });
 }
