@@ -33,18 +33,13 @@ npm link        # makes `apollo` available globally
 
 ## Authentication
 
-Get your API key from [Apollo.io Settings → Integrations → API](https://app.apollo.io/#/settings/integrations/api).
+Authentication uses OAuth 2.0 via your browser — no API key needed.
 
 ```bash
-apollo auth login <your-api-key>   # saves to ~/.config/apollo/credentials
-apollo auth whoami                 # confirm which key is active
-apollo auth logout                 # remove saved credentials
+apollo auth login    # opens browser to authorize, saves token to ~/.config/apollo/credentials
+apollo auth whoami   # confirm you're logged in
+apollo auth logout   # revoke token and remove saved credentials
 ```
-
-The API key is resolved in this order:
-
-1. `APOLLO_API_KEY` environment variable
-2. `~/.config/apollo/credentials`
 
 ## Commands
 
@@ -201,9 +196,9 @@ apollo news search --id abc123def456
 
 | Command | Description |
 |---|---|
-| `apollo auth login <key>` | Save API key to `~/.config/apollo/credentials` |
-| `apollo auth logout` | Remove saved credentials |
-| `apollo auth whoami` | Show which key is active |
+| `apollo auth login` | Authorize via browser OAuth, saves token to `~/.config/apollo/credentials` |
+| `apollo auth logout` | Revoke token and remove saved credentials |
+| `apollo auth whoami` | Show whether you're logged in |
 
 ---
 
@@ -225,8 +220,3 @@ apollo companies search --industry SaaS --funding "5000000,20000000" --location 
   | jq '.organizations[].primary_domain'
 ```
 
-## Environment Variables
-
-| Variable | Description |
-|---|---|
-| `APOLLO_API_KEY` | API key (takes precedence over credentials file) |
