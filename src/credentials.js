@@ -5,7 +5,7 @@ import { homedir } from 'os';
 export const CREDENTIALS_PATH = join(homedir(), '.config', 'apollo', 'credentials');
 
 export function saveOAuthCredentials({ clientId, access_token, refresh_token, expires_in }) {
-  mkdirSync(dirname(CREDENTIALS_PATH), { recursive: true });
+  mkdirSync(dirname(CREDENTIALS_PATH), { recursive: true, mode: 0o700 });
   writeFileSync(CREDENTIALS_PATH, JSON.stringify({
     type: 'oauth',
     access_token,

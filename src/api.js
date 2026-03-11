@@ -8,6 +8,10 @@ function getAuthHeaders() {
     console.error('Not logged in. Run: apollo auth login');
     process.exit(1);
   }
+  if (creds.expires_at && Date.now() >= creds.expires_at) {
+    console.error('Session expired. Run: apollo auth login');
+    process.exit(1);
+  }
   return { 'Authorization': `Bearer ${creds.access_token}` };
 }
 

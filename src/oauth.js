@@ -1,6 +1,6 @@
 import http from 'http';
 import crypto from 'crypto';
-import { execSync } from 'child_process';
+import { spawnSync } from 'child_process';
 
 const APOLLO_BASE = 'https://api.apollo.io';
 const APOLLO_MCP_BASE = 'https://mcp.apollo.io';
@@ -18,7 +18,7 @@ function generatePKCE() {
 async function registerClient() {
   const res = await fetch(`${APOLLO_MCP_BASE}/api/v1/oauth/applications/register_oauth_client`, {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json', 'User-Agent': 'Apollo-MCP/1.0' },
+    headers: { 'Content-Type': 'application/json', 'User-Agent': 'apollo-io-cli/1.0' },
     body: JSON.stringify({
       client_name: 'Apollo CLI',
       redirect_uris: [REDIRECT_URI],
@@ -58,9 +58,9 @@ export async function revokeToken(accessToken, clientId) {
 }
 
 function openBrowser(url) {
-  if (process.platform === 'darwin') execSync(`open "${url}"`);
-  else if (process.platform === 'win32') execSync(`start "" "${url}"`);
-  else execSync(`xdg-open "${url}"`);
+  if (process.platform === 'darwin') spawnSync('open', [url]);
+  else if (process.platform === 'win32') spawnSync('cmd', ['/c', 'start', '', url]);
+  else spawnSync('xdg-open', [url]);
 }
 
 export async function oauthLogin() {
