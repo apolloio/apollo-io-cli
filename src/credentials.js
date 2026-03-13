@@ -32,9 +32,14 @@ export async function getValidCredentials() {
 
   if (!creds.refresh_token) return creds;
 
-  const tokens = await refreshAccessToken(creds.refresh_token, creds.client_id);
-  saveOAuthCredentials({ clientId: creds.client_id, ...tokens });
-  return loadCredentials();
+  try {
+    const tokens = await refreshAccessToken(creds.refresh_token, creds.client_id);
+    saveOAuthCredentials({ clientId: creds.client_id, ...tokens });
+    return loadCredentials();
+  } catch {
+    console.error('Session expired. Run: apollo auth login');
+    process.exit(1);
+  }
 }
 
 export function clearCredentials() {
