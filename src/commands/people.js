@@ -1,5 +1,5 @@
 import { apolloGet, apolloRequest } from '../api.js';
-import { print } from '../output.js';
+import { print, FORMAT_OPTION } from '../output.js';
 import { parsePageOptions } from '../utils.js';
 
 export function registerPeople(program) {
@@ -18,6 +18,7 @@ export function registerPeople(program) {
     .option('--industry <industries...>', 'Industry(s) to filter by')
     .option('--per-page <n>', 'Results per page', '10')
     .option('--page <n>', 'Page number', '1')
+    .option(...FORMAT_OPTION)
     .action(async (opts) => {
       const body = parsePageOptions(opts);
 
@@ -31,7 +32,7 @@ export function registerPeople(program) {
       if (opts.industry) body.organization_industry_tag_ids = opts.industry;
 
       const data = await apolloRequest('/mixed_people/api_search', body);
-      print(data);
+      print(data, opts.format);
     });
 
   people
@@ -43,6 +44,7 @@ export function registerPeople(program) {
     .option('--last-name <name>', 'Last name (use with --first-name and --company)')
     .option('--name <name>', 'Full name (use with --company)')
     .option('--company <domain>', 'Company domain (use with --name or --first-name/--last-name)')
+    .option(...FORMAT_OPTION)
     .action(async (opts) => {
       if (!opts.email && !opts.linkedin && !opts.firstName && !opts.name) {
         console.error('Error: provide --email, --linkedin, or --name/--first-name with --company');
@@ -58,26 +60,28 @@ export function registerPeople(program) {
       if (opts.company) body.organization_name = opts.company;
 
       const data = await apolloRequest('/people/match', body);
-      print(data);
+      print(data, opts.format);
     });
 
   people
     .command('bulk-enrich')
     .description('Enrich multiple people by email')
     .requiredOption('--emails <emails...>', 'Email addresses to enrich')
+    .option(...FORMAT_OPTION)
     .action(async (opts) => {
       const body = { details: opts.emails.map(email => ({ email })) };
       const data = await apolloRequest('/people/bulk_match', body);
-      print(data);
+      print(data, opts.format);
     });
 
   people
     .command('email')
     .description('Get the email address for a person by Apollo person ID')
     .requiredOption('--id <id>', 'Apollo person ID')
+    .option(...FORMAT_OPTION)
     .action(async (opts) => {
       const data = await apolloGet('/people/match', { id: opts.id });
-      print(data);
+      print(data, opts.format);
     });
 
   people
@@ -88,6 +92,7 @@ export function registerPeople(program) {
     .option('--linkedin <url>', 'Company LinkedIn URL')
     .option('--per-page <n>', 'Results per page', '10')
     .option('--page <n>', 'Page number', '1')
+    .option(...FORMAT_OPTION)
     .action(async (opts) => {
       const body = parsePageOptions(opts);
 
@@ -96,6 +101,6 @@ export function registerPeople(program) {
       if (opts.linkedin) body.organization_linkedin_url = opts.linkedin;
 
       const data = await apolloRequest('/mixed_people/api_search', body);
-      print(data);
+      print(data, opts.format);
     });
 }

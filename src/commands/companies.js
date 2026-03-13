@@ -1,5 +1,5 @@
 import { apolloGet, apolloRequest } from '../api.js';
-import { print } from '../output.js';
+import { print, FORMAT_OPTION } from '../output.js';
 import { parsePageOptions } from '../utils.js';
 
 export function registerCompanies(program) {
@@ -20,6 +20,7 @@ export function registerCompanies(program) {
     .option('--hiring-for <titles...>', 'Currently hiring for job title(s)')
     .option('--per-page <n>', 'Results per page', '10')
     .option('--page <n>', 'Page number', '1')
+    .option(...FORMAT_OPTION)
     .action(async (opts) => {
       const body = parsePageOptions(opts);
 
@@ -44,7 +45,7 @@ export function registerCompanies(program) {
       if (opts.hiringFor) body.q_organization_job_titles = opts.hiringFor;
 
       const data = await apolloRequest('/mixed_companies/search', body);
-      print(data);
+      print(data, opts.format);
     });
 
   companies
@@ -52,6 +53,7 @@ export function registerCompanies(program) {
     .description('Enrich a company profile')
     .option('--domain <domain>', 'Company domain (e.g. acme.com)')
     .option('--name <name>', 'Company name')
+    .option(...FORMAT_OPTION)
     .action(async (opts) => {
       if (!opts.domain && !opts.name) {
         console.error('Error: provide --domain or --name');
@@ -75,7 +77,7 @@ export function registerCompanies(program) {
           process.exit(1);
         }
         const data = await apolloRequest('/organizations/enrich', { domain });
-        print(data);
+        print(data, opts.format);
         return;
       }
 
@@ -84,30 +86,32 @@ export function registerCompanies(program) {
       if (opts.name) body.name = opts.name;
 
       const data = await apolloRequest('/organizations/enrich', body);
-      print(data);
+      print(data, opts.format);
     });
 
   companies
     .command('bulk-enrich')
     .description('Enrich multiple companies by domain')
     .requiredOption('--domains <domains...>', 'Company domains to enrich')
+    .option(...FORMAT_OPTION)
     .action(async (opts) => {
       const body = { domains: opts.domains };
       const data = await apolloRequest('/organizations/bulk_enrich', body);
-      print(data);
+      print(data, opts.format);
     });
 
   companies
     .command('get')
     .description('Get full details for a company by ID')
     .requiredOption('--id <id>', 'Apollo organization ID')
+    .option(...FORMAT_OPTION)
     .action(async (opts) => {
       const data = await apolloRequest('/mixed_companies/search', {
         organization_ids: [opts.id],
         per_page: 1,
         page: 1,
       });
-      print(data);
+      print(data, opts.format);
     });
 
   companies
@@ -116,9 +120,10 @@ export function registerCompanies(program) {
     .requiredOption('--id <id>', 'Apollo organization ID')
     .option('--per-page <n>', 'Results per page', '10')
     .option('--page <n>', 'Page number', '1')
+    .option(...FORMAT_OPTION)
     .action(async (opts) => {
       const { page, per_page } = parsePageOptions(opts);
       const data = await apolloGet(`/organizations/${opts.id}/job_postings`, { page, per_page });
-      print(data);
+      print(data, opts.format);
     });
 }
