@@ -1,5 +1,6 @@
 import { apolloRequest } from '../api.js';
 import { print } from '../output.js';
+import { parsePageOptions } from '../utils.js';
 
 export function registerNews(program) {
   const news = program.command('news').description('Search news articles');
@@ -17,10 +18,7 @@ export function registerNews(program) {
         process.exit(1);
       }
 
-      const body = {
-        page: parseInt(opts.page),
-        per_page: parseInt(opts.perPage),
-      };
+      const body = parsePageOptions(opts);
 
       if (opts.company) body.q_organization_name = opts.company;
       if (opts.id) body.organization_id = opts.id;
