@@ -2,7 +2,6 @@ import http from 'http';
 import crypto from 'crypto';
 import { spawnSync } from 'child_process';
 
-const APOLLO_BASE = 'https://api.apollo.io';
 const APOLLO_MCP_BASE = 'https://mcp.apollo.io';
 const REDIRECT_PORT = 3421;
 const REDIRECT_URI = `http://localhost:${REDIRECT_PORT}/callback`;

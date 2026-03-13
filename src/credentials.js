@@ -5,7 +5,7 @@ import { refreshAccessToken } from './oauth.js';
 
 const TOKEN_EXPIRY_BUFFER_MS = 60 * 1000; // refresh 1 minute before expiry
 
-export const CREDENTIALS_PATH = join(homedir(), '.config', 'apollo', 'credentials');
+const CREDENTIALS_PATH = join(homedir(), '.config', 'apollo', 'credentials');
 
 export function saveOAuthCredentials({ clientId, access_token, refresh_token, expires_in }) {
   mkdirSync(dirname(CREDENTIALS_PATH), { recursive: true, mode: 0o700 });
@@ -33,8 +33,8 @@ export async function getValidCredentials() {
   if (!creds.refresh_token) return creds;
 
   try {
-    const tokens = await refreshAccessToken(creds.refresh_token, creds.client_id);
-    saveOAuthCredentials({ clientId: creds.client_id, ...tokens });
+    const { access_token, refresh_token, expires_in } = await refreshAccessToken(creds.refresh_token, creds.client_id);
+    saveOAuthCredentials({ clientId: creds.client_id, access_token, refresh_token, expires_in });
     return loadCredentials();
   } catch {
     console.error('Session expired. Run: apollo auth login');

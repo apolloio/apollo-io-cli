@@ -1,5 +1,6 @@
 import { apolloRequest } from '../api.js';
 import { print } from '../output.js';
+import { parsePageOptions } from '../utils.js';
 
 export function registerPeople(program) {
   const people = program.command('people').description('Search and enrich people');
@@ -18,10 +19,7 @@ export function registerPeople(program) {
     .option('--per-page <n>', 'Results per page', '10')
     .option('--page <n>', 'Page number', '1')
     .action(async (opts) => {
-      const body = {
-        page: parseInt(opts.page),
-        per_page: parseInt(opts.perPage),
-      };
+      const body = parsePageOptions(opts);
 
       if (opts.query) body.q_keywords = opts.query;
       if (opts.title) body.person_titles = opts.title;
@@ -86,10 +84,7 @@ export function registerPeople(program) {
     .option('--per-page <n>', 'Results per page', '10')
     .option('--page <n>', 'Page number', '1')
     .action(async (opts) => {
-      const body = {
-        page: parseInt(opts.page),
-        per_page: parseInt(opts.perPage),
-      };
+      const body = parsePageOptions(opts);
 
       if (opts.name) body.q_organization_name = opts.name;
       if (opts.domain) body.q_organization_domains_list = [opts.domain];
