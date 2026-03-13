@@ -2,7 +2,6 @@ import http from 'http';
 import crypto from 'crypto';
 import { spawnSync } from 'child_process';
 
-const APOLLO_BASE = 'https://api.apollo.io';
 const APOLLO_MCP_BASE = 'https://mcp.apollo.io';
 const REDIRECT_PORT = 3421;
 const REDIRECT_URI = `http://localhost:${REDIRECT_PORT}/callback`;
@@ -46,6 +45,20 @@ async function exchangeCode(code, clientId, verifier) {
     }),
   });
   if (!res.ok) throw new Error(`Token exchange failed: ${await res.text()}`);
+  return res.json();
+}
+
+export async function refreshAccessToken(refreshToken, clientId) {
+  const res = await fetch(`${APOLLO_MCP_BASE}/api/v1/oauth/token`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+    body: new URLSearchParams({
+      grant_type: 'refresh_token',
+      refresh_token: refreshToken,
+      client_id: clientId,
+    }),
+  });
+  if (!res.ok) throw new Error(`Token refresh failed: ${await res.text()}`);
   return res.json();
 }
 

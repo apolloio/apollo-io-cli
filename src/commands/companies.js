@@ -1,5 +1,6 @@
 import { apolloRequest } from '../api.js';
 import { print } from '../output.js';
+import { parsePageOptions } from '../utils.js';
 
 export function registerCompanies(program) {
   const companies = program.command('companies').description('Search and enrich companies');
@@ -20,10 +21,7 @@ export function registerCompanies(program) {
     .option('--per-page <n>', 'Results per page', '10')
     .option('--page <n>', 'Page number', '1')
     .action(async (opts) => {
-      const body = {
-        page: parseInt(opts.page),
-        per_page: parseInt(opts.perPage),
-      };
+      const body = parsePageOptions(opts);
 
       if (opts.query) body.q_organization_keyword_tags = [opts.query];
       if (opts.location) body.organization_locations = opts.location;
@@ -91,8 +89,7 @@ export function registerCompanies(program) {
     .action(async (opts) => {
       const data = await apolloRequest('/organizations/job_postings', {
         organization_id: opts.id,
-        page: parseInt(opts.page),
-        per_page: parseInt(opts.perPage),
+        ...parsePageOptions(opts),
       });
       print(data);
     });
