@@ -49,6 +49,20 @@ async function exchangeCode(code, clientId, verifier) {
   return res.json();
 }
 
+export async function refreshAccessToken(refreshToken, clientId) {
+  const res = await fetch(`${APOLLO_MCP_BASE}/api/v1/oauth/token`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+    body: new URLSearchParams({
+      grant_type: 'refresh_token',
+      refresh_token: refreshToken,
+      client_id: clientId,
+    }),
+  });
+  if (!res.ok) throw new Error(`Token refresh failed: ${await res.text()}`);
+  return res.json();
+}
+
 export async function revokeToken(accessToken, clientId) {
   await fetch(`${APOLLO_MCP_BASE}/api/v1/oauth/revoke`, {
     method: 'POST',
