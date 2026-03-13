@@ -1,11 +1,24 @@
 import { dump } from 'js-yaml';
 
+const VALID_FORMATS = ['json', 'jsonl', 'csv', 'yaml', 'table'];
+
+// Tuple matching Commander's .option(flags, description, default) signature
 export const FORMAT_OPTION = ['-f, --format <format>', 'Output format: json, jsonl, csv, yaml, table', 'json'];
 
 function toRows(data) {
   if (Array.isArray(data)) return data;
   if (typeof data === 'object' && data !== null) return [data];
   return [{ value: data }];
+}
+
+function allKeys(rows) {
+  const seen = new Set();
+  for (const row of rows) {
+    if (typeof row === 'object' && row !== null) {
+      for (const k of Object.keys(row)) seen.add(k);
+    }
+  }
+  return [...seen];
 }
 
 function stringify(val) {
@@ -16,24 +29,24 @@ function stringify(val) {
 
 function toCsv(rows) {
   if (!rows.length) return '';
-  const headers = Object.keys(rows[0]);
+  const headers = allKeys(rows);
   const escape = (val) => {
     const s = stringify(val);
-    return s.includes(',') || s.includes('\n') || s.includes('"')
+    return s.includes(',') || s.includes('\r') || s.includes('\n') || s.includes('"')
       ? `"${s.replace(/"/g, '""')}"`
       : s;
   };
   return [
-    headers.join(','),
+    headers.map(h => escape(h)).join(','),
     ...rows.map(row => headers.map(h => escape(row[h])).join(',')),
-  ].join('\n');
+  ].join('\r\n');
 }
 
 function toTable(rows) {
   if (!rows.length) return '(no results)';
-  const headers = Object.keys(rows[0]);
+  const headers = allKeys(rows);
   const colWidths = headers.map(h =>
-    Math.max(h.length, ...rows.map(r => stringify(r[h]).length))
+    rows.reduce((max, r) => Math.max(max, stringify(r[h]).length), h.length)
   );
   const sep = '+' + colWidths.map(w => '-'.repeat(w + 2)).join('+') + '+';
   const fmt = (vals) => '|' + vals.map((v, i) => ` ${v.padEnd(colWidths[i])} `).join('|') + '|';
@@ -46,7 +59,12 @@ function toTable(rows) {
   ].join('\n');
 }
 
-export function print(data, format = 'json') {
+export function print(data, format) {
+  if (format && !VALID_FORMATS.includes(format)) {
+    console.error(`Error: unknown format "${format}". Valid options: ${VALID_FORMATS.join(', ')}`);
+    process.exit(1);
+  }
+
   switch (format) {
     case 'jsonl':
       toRows(data).forEach(row => console.log(JSON.stringify(row)));
@@ -55,6 +73,7 @@ export function print(data, format = 'json') {
       console.log(toCsv(toRows(data)));
       break;
     case 'yaml':
+      // YAML dumps the full response as-is (preserving nested structure, unlike csv/table)
       console.log(dump(data));
       break;
     case 'table':

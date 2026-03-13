@@ -24,11 +24,11 @@ export function registerCompanies(program) {
     .action(async (opts) => {
       const body = parsePageOptions(opts);
 
-      if (opts.query) body.q_organization_keyword_tags = [opts.query];
+      if (opts.industry) body.q_organization_keyword_tags = opts.industry;
+      else if (opts.query) body.q_organization_keyword_tags = [opts.query];
       if (opts.location) body.organization_locations = opts.location;
       if (opts.notLocation) body.organization_not_locations = opts.notLocation;
       if (opts.employees) body.organization_num_employees_ranges = [opts.employees];
-      if (opts.industry) body.q_organization_keyword_tags = opts.industry;
       if (opts.technology) body.currently_using_any_of_technology_uids = opts.technology;
       if (opts.revenue) {
         const [min, max] = opts.revenue.split(',');
