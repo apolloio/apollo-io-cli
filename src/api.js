@@ -1,9 +1,9 @@
-import { loadCredentials } from './credentials.js';
+import { getValidCredentials } from './credentials.js';
 
 const BASE_URL = 'https://api.apollo.io/api/v1';
 
-function getAuthHeaders() {
-  const creds = loadCredentials();
+async function getAuthHeaders() {
+  const creds = await getValidCredentials();
   if (!creds) {
     console.error('Not logged in. Run: apollo auth login');
     process.exit(1);
@@ -22,7 +22,7 @@ export async function apolloRequest(path, body = {}) {
       'Content-Type': 'application/json',
       'Cache-Control': 'no-cache',
       'User-Agent': 'apollo-io-cli/1.0',
-      ...getAuthHeaders(),
+      ...await getAuthHeaders(),
     },
     body: JSON.stringify(body),
   });
