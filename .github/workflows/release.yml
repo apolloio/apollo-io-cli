@@ -26,3 +26,32 @@ jobs:
             dist/apollo-macos-arm64
             dist/apollo-macos-x64
             dist/apollo-linux-x64
+
+  update-homebrew-tap:
+    needs: build
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout tap repo
+        uses: actions/checkout@v4
+        with:
+          repository: apolloio/homebrew-apollo-io-cli
+          token: ${{ secrets.HOMEBREW_TAP_TOKEN }}
+
+      - name: Download release binaries
+        run: |
+          VERSION=${GITHUB_REF_NAME#v}
+          curl -sL "https://github.com/apolloio/apollo-io-cli/releases/download/${GITHUB_REF_NAME}/apollo-macos-arm64" -o apollo-macos-arm64
+          curl -sL "https://github.com/apolloio/apollo-io-cli/releases/download/${GITHUB_REF_NAME}/apollo-macos-x64" -o apollo-macos-x64
+          ARM64_SHA=$(shasum -a 256 apollo-macos-arm64 | awk '{print $1}')
+          X64_SHA=$(shasum -a 256 apollo-macos-x64 | awk '{print $1}')
+          sed -i "s/version \".*\"/version \"${VERSION}\"/" Formula/apollo-io-cli.rb
+          sed -i "/apollo-macos-arm64/{n;s/sha256 \".*\"/sha256 \"${ARM64_SHA}\"/}" Formula/apollo-io-cli.rb
+          sed -i "/apollo-macos-x64/{n;s/sha256 \".*\"/sha256 \"${X64_SHA}\"/}" Formula/apollo-io-cli.rb
+
+      - name: Commit and push updated formula
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add Formula/apollo-io-cli.rb
+          git commit -m "Update apollo-io-cli to ${GITHUB_REF_NAME}"
+          git push
