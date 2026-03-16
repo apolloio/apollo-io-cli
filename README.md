@@ -202,6 +202,14 @@ apollo news search --id abc123def456
 
 ---
 
+## Using with AI Agents
+
+This repository includes a Claude Code skill at `.claude/skills/apollo-cli/SKILL.md` that gives AI agents full knowledge of the CLI's commands, options, and JSON response shapes. Agents working in this repo will automatically use it.
+
+For agents not using Claude Code, see [`AGENTS.md`](./AGENTS.md) at the root for equivalent guidance.
+
+---
+
 ## Piping with jq
 
 All commands output JSON to stdout, making them composable with `jq`:
