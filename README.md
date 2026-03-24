@@ -18,6 +18,14 @@ Download the latest binary for your platform from the [releases page](https://gi
 
 Then make it executable and move it to your PATH:
 
+> **Verify the binary (optional)** — each release includes a GPG signature (`.asc` file). To verify:
+> ```bash
+> gpg --import release-signing-key.asc   # import the public key from this repo
+> gpg --verify apollo-macos-arm64.asc apollo-macos-arm64
+> ```
+> You should see `Good signature from "Apollo IO CLI Releases <releases@apollo.io>"`.
+
+
 ```bash
 chmod +x apollo-macos-arm64
 mv apollo-macos-arm64 /usr/local/bin/apollo
