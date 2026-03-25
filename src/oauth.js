@@ -128,7 +128,7 @@ export async function oauthLogin() {
 
     server.on('error', (err) => done(() => reject(err)));
 
-    server.listen(REDIRECT_PORT, () => {
+    server.listen(REDIRECT_PORT, '127.0.0.1', () => {
       console.log('Opening browser for Apollo login...');
       try {
         openBrowser(authUrl);
