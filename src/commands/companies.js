@@ -1,4 +1,4 @@
-import { apolloRequest } from '../api.js';
+import { apolloGet, apolloRequest } from '../api.js';
 import { print } from '../output.js';
 import { parsePageOptions } from '../utils.js';
 
@@ -53,6 +53,32 @@ export function registerCompanies(program) {
     .option('--domain <domain>', 'Company domain (e.g. acme.com)')
     .option('--name <name>', 'Company name')
     .action(async (opts) => {
+      if (!opts.domain && !opts.name) {
+        console.error('Error: provide --domain or --name');
+        process.exit(1);
+      }
+
+      if (!opts.domain && opts.name) {
+        const searchData = await apolloRequest('/mixed_companies/search', {
+          q_organization_keyword_tags: [opts.name],
+          per_page: 1,
+          page: 1,
+        });
+        const account = searchData.accounts?.[0];
+        if (!account) {
+          console.error(`No company found for name: ${opts.name}`);
+          process.exit(1);
+        }
+        const domain = account.primary_domain || account.domain;
+        if (!domain) {
+          console.error(`No domain found for company: ${opts.name}`);
+          process.exit(1);
+        }
+        const data = await apolloRequest('/organizations/enrich', { domain });
+        print(data);
+        return;
+      }
+
       const body = {};
       if (opts.domain) body.domain = opts.domain;
       if (opts.name) body.name = opts.name;
@@ -76,7 +102,11 @@ export function registerCompanies(program) {
     .description('Get full details for a company by ID')
     .requiredOption('--id <id>', 'Apollo organization ID')
     .action(async (opts) => {
-      const data = await apolloRequest('/organizations/enrich', { id: opts.id });
+      const data = await apolloRequest('/mixed_companies/search', {
+        organization_ids: [opts.id],
+        per_page: 1,
+        page: 1,
+      });
       print(data);
     });
 
@@ -87,10 +117,8 @@ export function registerCompanies(program) {
     .option('--per-page <n>', 'Results per page', '10')
     .option('--page <n>', 'Page number', '1')
     .action(async (opts) => {
-      const data = await apolloRequest('/organizations/job_postings', {
-        organization_id: opts.id,
-        ...parsePageOptions(opts),
-      });
+      const { page, per_page } = parsePageOptions(opts);
+      const data = await apolloGet(`/organizations/${opts.id}/job_postings`, { page, per_page });
       print(data);
     });
 }

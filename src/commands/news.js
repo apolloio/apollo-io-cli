@@ -18,12 +18,27 @@ export function registerNews(program) {
         process.exit(1);
       }
 
-      const body = parsePageOptions(opts);
+      const { page, per_page } = parsePageOptions(opts);
+      let organizationId = opts.id;
 
-      if (opts.company) body.q_organization_name = opts.company;
-      if (opts.id) body.organization_id = opts.id;
+      if (!organizationId) {
+        const searchData = await apolloRequest('/mixed_companies/search', {
+          q_organization_keyword_tags: [opts.company],
+          per_page: 1,
+          page: 1,
+        });
+        organizationId = searchData.accounts?.[0]?.id;
+        if (!organizationId) {
+          console.error(`No company found for name: ${opts.company}`);
+          process.exit(1);
+        }
+      }
 
-      const data = await apolloRequest('/news/search', body);
+      const data = await apolloRequest('/news_articles/search', {
+        organization_ids: [organizationId],
+        page,
+        per_page,
+      });
       print(data);
     });
 }

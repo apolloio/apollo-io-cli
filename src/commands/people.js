@@ -1,4 +1,4 @@
-import { apolloRequest } from '../api.js';
+import { apolloGet, apolloRequest } from '../api.js';
 import { print } from '../output.js';
 import { parsePageOptions } from '../utils.js';
 
@@ -44,6 +44,11 @@ export function registerPeople(program) {
     .option('--name <name>', 'Full name (use with --company)')
     .option('--company <domain>', 'Company domain (use with --name or --first-name/--last-name)')
     .action(async (opts) => {
+      if (!opts.email && !opts.linkedin && !opts.firstName && !opts.name) {
+        console.error('Error: provide --email, --linkedin, or --name/--first-name with --company');
+        process.exit(1);
+      }
+
       const body = {};
       if (opts.email) body.email = opts.email;
       if (opts.linkedin) body.linkedin_url = opts.linkedin;
@@ -61,7 +66,7 @@ export function registerPeople(program) {
     .description('Enrich multiple people by email')
     .requiredOption('--emails <emails...>', 'Email addresses to enrich')
     .action(async (opts) => {
-      const body = { emails: opts.emails };
+      const body = { details: opts.emails.map(email => ({ email })) };
       const data = await apolloRequest('/people/bulk_match', body);
       print(data);
     });
@@ -71,7 +76,7 @@ export function registerPeople(program) {
     .description('Get the email address for a person by Apollo person ID')
     .requiredOption('--id <id>', 'Apollo person ID')
     .action(async (opts) => {
-      const data = await apolloRequest('/people/request_email', { id: opts.id });
+      const data = await apolloGet('/people/match', { id: opts.id });
       print(data);
     });
 
