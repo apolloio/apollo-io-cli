@@ -142,4 +142,4 @@ apollo companies search --industry SaaS --funding "5000000,20000000" --location 
 | `companies search` | `.organizations[]` |
 | `companies enrich` / `companies get` | `.organization` |
 | `companies jobs` | `.job_postings[]` |
-| `news search` | `.news[]` |
+| `news search` | `.news_articles[]` |

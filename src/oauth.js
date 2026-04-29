@@ -5,7 +5,7 @@ import { spawnSync } from 'child_process';
 const APOLLO_MCP_BASE = 'https://mcp.apollo.io';
 const REDIRECT_PORT = 3421;
 const REDIRECT_URI = `http://localhost:${REDIRECT_PORT}/callback`;
-const SCOPES = 'people_bulk_match organizations_bulk_enrich organizations_enrich people_match mixed_people_search mixed_people_api_search organizations_job_posting mixed_companies_search news_articles_search contact_write contact_update contacts_search contact_read account_write account_update emailer_campaigns_search emailer_campaigns_add_contact_ids emailer_campaigns_remove_or_stop_contact_ids email_accounts_list read_user_profile';
+const SCOPES = 'people_bulk_match organizations_bulk_enrich organizations_enrich people_match mixed_people_search mixed_people_api_search organizations_job_posting mixed_companies_search organizations_news_articles contact_write contact_update contacts_search contact_read account_write account_update emailer_campaigns_search emailer_campaigns_add_contact_ids emailer_campaigns_remove_or_stop_contact_ids email_accounts_list read_user_profile';
 const TIMEOUT_MS = 5 * 60 * 1000;
 
 function generatePKCE() {
