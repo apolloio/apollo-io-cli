@@ -1,6 +1,6 @@
 # apollo-io-cli
 
-A command-line interface for the [Apollo.io API](https://apolloio.github.io/apollo-api-docs/). Search and enrich people and companies, find job postings, and surface news — all from your terminal, pipeable with `jq`.
+A command-line interface for the [Apollo.io API](https://apolloio.github.io/apollo-api-docs/). Search and enrich people and companies, find job postings, and surface news — all from your terminal, pipeable with `jq` and switchable to CSV / YAML / JSONL / table output.
 
 <img width="1908" height="2294" alt="image" src="https://github.com/user-attachments/assets/eb7ebc43-1c64-466d-8959-e9c6e185433a" />
 
@@ -218,9 +218,34 @@ For agents not using Claude Code, see [`AGENTS.md`](./AGENTS.md) at the root for
 
 ---
 
+## Output formats
+
+Every subcommand accepts `-f, --format <format>` (default `json`):
+
+| Format | Description |
+|---|---|
+| `json` | Pretty-printed JSON. Default. Pipe to `jq` for field extraction. |
+| `jsonl` | One JSON object per line. Useful for streaming into log/data pipelines. |
+| `csv` | Flat CSV with headers; nested objects/arrays are stringified into a single cell. |
+| `yaml` | Human-readable YAML. Easier to scan for deeply nested responses. |
+| `table` | ASCII bordered table. Good for quick terminal browsing of small responses. |
+
+```bash
+apollo companies search --industry saas --format table
+apollo people bulk-enrich --emails a@b.com c@d.com --format jsonl
+apollo news search --company "Stripe" --format yaml
+apollo people search --title "CTO" --domain stripe.com --format csv > ctos.csv
+```
+
+> Search/list responses include both pagination metadata and an array of records. `csv` and `table` formats render these as two columns with the array stringified — for analysis, prefer `json` + `jq` to project just the records:
+>
+> ```bash
+> apollo companies search --industry saas --format json | jq '.organizations[]' --compact-output > orgs.jsonl
+> ```
+
 ## Piping with jq
 
-All commands output JSON to stdout, making them composable with `jq`:
+Default JSON output is composable with `jq`:
 
 ```bash
 # Get names and titles of VP Engineering at Stripe
