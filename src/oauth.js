@@ -5,7 +5,19 @@ import { spawnSync } from 'child_process';
 const APOLLO_MCP_BASE = 'https://mcp.apollo.io';
 const REDIRECT_PORT = 3421;
 const REDIRECT_URI = `http://localhost:${REDIRECT_PORT}/callback`;
-const SCOPES = 'people_bulk_match organizations_bulk_enrich organizations_enrich people_match mixed_people_search mixed_people_api_search organizations_job_posting mixed_companies_search organizations_news_articles contact_write contact_update contacts_search contact_read account_write account_update emailer_campaigns_search emailer_campaigns_add_contact_ids emailer_campaigns_remove_or_stop_contact_ids email_accounts_list read_user_profile';
+const SCOPES = [
+  'people_bulk_match', 'organizations_bulk_enrich', 'organizations_enrich', 'people_match',
+  'mixed_people_search', 'mixed_people_api_search', 'organizations_job_posting',
+  'mixed_companies_search', 'organizations_news_articles',
+  'contact_write', 'contact_update', 'contacts_search', 'contact_read', 'contacts_bulk_create',
+  'account_write', 'account_update', 'account_bulk_create',
+  'emailer_campaigns_search', 'emailer_campaigns_add_contact_ids', 'emailer_campaigns_remove_or_stop_contact_ids',
+  'email_accounts_list', 'read_user_profile', 'users_list',
+  'opportunity_write', 'opportunities_list', 'opportunity_read',
+  'phone_call_write', 'phone_call_search', 'phone_call_update',
+  'tasks_create', 'tasks_list',
+  'report_sync', 'credit_usage_stats_read',
+].join(' ');
 const TIMEOUT_MS = 5 * 60 * 1000;
 
 function generatePKCE() {

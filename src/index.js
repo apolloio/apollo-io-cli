@@ -5,6 +5,16 @@ import { registerAuth } from './commands/auth.js';
 import { registerPeople } from './commands/people.js';
 import { registerCompanies } from './commands/companies.js';
 import { registerNews } from './commands/news.js';
+import { registerContacts } from './commands/contacts.js';
+import { registerAccounts } from './commands/accounts.js';
+import { registerDeals } from './commands/deals.js';
+import { registerSequences } from './commands/sequences.js';
+import { registerCalls } from './commands/calls.js';
+import { registerTasks } from './commands/tasks.js';
+import { registerUsers } from './commands/users.js';
+import { registerEmailAccounts } from './commands/emailAccounts.js';
+import { registerUsage } from './commands/usage.js';
+import { registerAnalytics } from './commands/analytics.js';
 
 const program = new Command();
 
@@ -17,5 +27,15 @@ registerAuth(program);
 registerPeople(program);
 registerCompanies(program);
 registerNews(program);
+registerContacts(program);
+registerAccounts(program);
+registerDeals(program);
+registerSequences(program);
+registerCalls(program);
+registerTasks(program);
+registerUsers(program);
+registerEmailAccounts(program);
+registerUsage(program);
+registerAnalytics(program);
 
 program.parse();

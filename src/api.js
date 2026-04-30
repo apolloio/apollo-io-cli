@@ -1,6 +1,14 @@
 import { getValidCredentials } from './credentials.js';
 
-const BASE_URL = 'https://api.apollo.io/api/v1';
+const API_HOST = 'https://api.apollo.io';
+const BASE_URL = `${API_HOST}/api/v1`;
+
+// Paths starting with /deals, /analytics, etc. are mounted off the host root,
+// not under /api/v1 — let callers opt into root-relative paths with a leading "//".
+function resolvePath(path) {
+  if (path.startsWith('//')) return `${API_HOST}/${path.slice(2)}`;
+  return `${BASE_URL}${path}`;
+}
 
 async function getAuthHeaders() {
   const creds = await getValidCredentials();
@@ -16,7 +24,7 @@ async function getAuthHeaders() {
 }
 
 export async function apolloGet(path, params = {}) {
-  const url = new URL(`${BASE_URL}${path}`);
+  const url = new URL(resolvePath(path));
   for (const [key, value] of Object.entries(params)) {
     if (Array.isArray(value)) {
       for (const v of value) url.searchParams.append(`${key}[]`, v);
@@ -40,9 +48,9 @@ export async function apolloGet(path, params = {}) {
   return res.json();
 }
 
-export async function apolloRequest(path, body = {}) {
-  const res = await fetch(`${BASE_URL}${path}`, {
-    method: 'POST',
+export async function apolloRequest(path, body = {}, method = 'POST') {
+  const res = await fetch(resolvePath(path), {
+    method,
     headers: {
       'Content-Type': 'application/json',
       'Cache-Control': 'no-cache',
