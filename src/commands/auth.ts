@@ -1,7 +1,8 @@
+import type { Command } from 'commander';
 import { saveOAuthCredentials, clearCredentials, loadCredentials } from '../credentials.js';
 import { oauthLogin, revokeToken } from '../oauth.js';
 
-export function registerAuth(program) {
+export function registerAuth(program: Command): void {
   const auth = program.command('auth').description('Manage Apollo.io credentials');
 
   auth
@@ -14,7 +15,8 @@ export function registerAuth(program) {
         console.log('Successfully logged in.');
         process.exit(0);
       } catch (err) {
-        console.error(`Login failed: ${err.message}`);
+        const message = err instanceof Error ? err.message : String(err);
+        console.error(`Login failed: ${message}`);
         process.exit(1);
       }
     });

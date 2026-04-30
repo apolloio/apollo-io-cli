@@ -1,26 +1,70 @@
+import type { Command } from 'commander';
 import { apolloGet, apolloRequest } from '../api.js';
 import { print, FORMAT_OPTION } from '../output.js';
 import { parsePageOptions } from '../utils.js';
 
-export function registerPeople(program) {
+interface PeopleSearchOptions {
+  query?: string;
+  title?: string[];
+  city?: string[];
+  seniority?: string[];
+  department?: string[];
+  technology?: string[];
+  domain?: string[];
+  industry?: string[];
+  page?: string;
+  perPage?: string;
+  format?: string;
+}
+
+interface PeopleEnrichOptions {
+  email?: string;
+  linkedin?: string;
+  firstName?: string;
+  lastName?: string;
+  name?: string;
+  company?: string;
+  format?: string;
+}
+
+interface PeopleBulkEnrichOptions {
+  emails: string[];
+  format?: string;
+}
+
+interface PeopleEmailOptions {
+  id: string;
+  format?: string;
+}
+
+interface PeopleEmployeesOptions {
+  name?: string;
+  domain?: string;
+  linkedin?: string;
+  page?: string;
+  perPage?: string;
+  format?: string;
+}
+
+export function registerPeople(program: Command): void {
   const people = program.command('people').description('Search and enrich people');
 
   people
     .command('search')
-    .description('Search for people in Apollo\'s database')
+    .description("Search for people in Apollo's database")
     .option('-q, --query <query>', 'Name or keyword query')
     .option('--title <titles...>', 'Job title(s) to filter by')
     .option('--city <locations...>', 'Location(s) to filter by')
     .option('--seniority <levels...>', 'Seniority level(s) (e.g. manager director vp c_suite)')
     .option('--department <depts...>', 'Department(s) to filter by (e.g. engineering sales)')
-    .option('--technology <techs...>', 'Technology UIDs the person\'s company uses')
+    .option('--technology <techs...>', "Technology UIDs the person's company uses")
     .option('--domain <domains...>', 'Company domain(s) to filter by')
     .option('--industry <industries...>', 'Industry(s) to filter by')
     .option('--per-page <n>', 'Results per page', '10')
     .option('--page <n>', 'Page number', '1')
     .option(...FORMAT_OPTION)
-    .action(async (opts) => {
-      const body = parsePageOptions(opts);
+    .action(async (opts: PeopleSearchOptions) => {
+      const body: Record<string, unknown> = { ...parsePageOptions(opts) };
 
       if (opts.query) body.q_keywords = opts.query;
       if (opts.title) body.person_titles = opts.title;
@@ -45,13 +89,13 @@ export function registerPeople(program) {
     .option('--name <name>', 'Full name (use with --company)')
     .option('--company <domain>', 'Company domain (use with --name or --first-name/--last-name)')
     .option(...FORMAT_OPTION)
-    .action(async (opts) => {
+    .action(async (opts: PeopleEnrichOptions) => {
       if (!opts.email && !opts.linkedin && !opts.firstName && !opts.name) {
         console.error('Error: provide --email, --linkedin, or --name/--first-name with --company');
         process.exit(1);
       }
 
-      const body = {};
+      const body: Record<string, unknown> = {};
       if (opts.email) body.email = opts.email;
       if (opts.linkedin) body.linkedin_url = opts.linkedin;
       if (opts.firstName) body.first_name = opts.firstName;
@@ -68,7 +112,7 @@ export function registerPeople(program) {
     .description('Enrich multiple people by email')
     .requiredOption('--emails <emails...>', 'Email addresses to enrich')
     .option(...FORMAT_OPTION)
-    .action(async (opts) => {
+    .action(async (opts: PeopleBulkEnrichOptions) => {
       const body = { details: opts.emails.map(email => ({ email })) };
       const data = await apolloRequest('/people/bulk_match', body);
       print(data, opts.format);
@@ -79,7 +123,7 @@ export function registerPeople(program) {
     .description('Get the email address for a person by Apollo person ID')
     .requiredOption('--id <id>', 'Apollo person ID')
     .option(...FORMAT_OPTION)
-    .action(async (opts) => {
+    .action(async (opts: PeopleEmailOptions) => {
       const data = await apolloGet('/people/match', { id: opts.id });
       print(data, opts.format);
     });
@@ -93,8 +137,8 @@ export function registerPeople(program) {
     .option('--per-page <n>', 'Results per page', '10')
     .option('--page <n>', 'Page number', '1')
     .option(...FORMAT_OPTION)
-    .action(async (opts) => {
-      const body = parsePageOptions(opts);
+    .action(async (opts: PeopleEmployeesOptions) => {
+      const body: Record<string, unknown> = { ...parsePageOptions(opts) };
 
       if (opts.name) body.q_organization_name = opts.name;
       if (opts.domain) body.q_organization_domains_list = [opts.domain];
