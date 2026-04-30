@@ -1,5 +1,5 @@
 import { apolloRequest } from '../api.js';
-import { print } from '../output.js';
+import { print, FORMAT_OPTION } from '../output.js';
 import { parsePageOptions } from '../utils.js';
 
 export function registerNews(program) {
@@ -12,6 +12,7 @@ export function registerNews(program) {
     .option('--id <id>', 'Apollo organization ID to filter by')
     .option('--per-page <n>', 'Results per page', '10')
     .option('--page <n>', 'Page number', '1')
+    .option(...FORMAT_OPTION)
     .action(async (opts) => {
       if (!opts.company && !opts.id) {
         console.error('Error: provide --company or --id');
@@ -39,6 +40,6 @@ export function registerNews(program) {
         page,
         per_page,
       });
-      print(data);
+      print(data, opts.format);
     });
 }

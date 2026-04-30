@@ -6,7 +6,7 @@ version: 1.0.0
 
 # Apollo CLI Skill
 
-Use the `apollo` CLI to search and enrich people and companies, find job postings, and surface news from Apollo.io. All output is JSON — pipe with `jq` to extract specific fields.
+Use the `apollo` CLI to search and enrich people and companies, find job postings, and surface news from Apollo.io. Output defaults to JSON for `jq` piping; use `-f, --format` to switch to `jsonl`, `csv`, `yaml`, or `table`.
 
 ## Authentication
 
@@ -114,9 +114,29 @@ apollo news search --id <organization_id>
 
 ---
 
+## Output formats
+
+Every subcommand accepts `-f, --format <format>`:
+
+| Format | When to use |
+|---|---|
+| `json` (default) | Pretty-printed JSON. Pipe to `jq` for field extraction. |
+| `jsonl` | One JSON object per line. Stream into log/data pipelines. |
+| `csv` | Flat CSV with headers; nested objects/arrays are stringified. Open in spreadsheets or feed to `mlr`/`csvkit`. |
+| `yaml` | Human-readable YAML. Good for inspecting deeply nested responses. |
+| `table` | ASCII bordered table. Good for terminal browsing of small responses. |
+
+```bash
+apollo companies search --industry saas --format table
+apollo people bulk-enrich --emails a@b.com c@d.com --format jsonl
+apollo news search --company Stripe --format yaml
+```
+
+For nested responses (search/list endpoints with pagination + items), prefer `json` + `jq` or `yaml`. `csv`/`table` will stringify nested structures into a single cell.
+
 ## Piping with jq
 
-All commands output JSON. Use `jq` to extract specific fields:
+For default JSON output, use `jq` to extract specific fields:
 
 ```bash
 # Names and titles of VPs at Stripe
