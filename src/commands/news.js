@@ -24,11 +24,14 @@ export function registerNews(program) {
 
       if (!organizationId) {
         const searchData = await apolloRequest('/mixed_companies/search', {
-          q_organization_keyword_tags: [opts.company],
+          q_organization_name: opts.company,
           per_page: 1,
           page: 1,
         });
-        organizationId = searchData.accounts?.[0]?.id;
+        // News articles are keyed on the canonical Apollo org id (account.organization_id)
+        // — not the team's CRM account.id, which is a separate namespace.
+        organizationId = searchData.accounts?.[0]?.organization_id
+          || searchData.organizations?.[0]?.id;
         if (!organizationId) {
           console.error(`No company found for name: ${opts.company}`);
           process.exit(1);

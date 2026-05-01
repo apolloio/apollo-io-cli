@@ -360,7 +360,7 @@ A minimal `report.json`:
 {
   "metrics": [
     {
-      "key": "num_emails_sent",
+      "value": "num_emails_sent",
       "smart_datetime_reference": "emailer_message__sent_at",
       "smart_user_id_reference": "emailer_message__user_id"
     }

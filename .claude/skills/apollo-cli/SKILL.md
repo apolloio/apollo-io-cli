@@ -243,7 +243,7 @@ Minimal payload (each metric needs `key`, `smart_datetime_reference`, and `smart
 {
   "metrics": [
     {
-      "key": "num_emails_sent",
+      "value": "num_emails_sent",
       "smart_datetime_reference": "emailer_message__sent_at",
       "smart_user_id_reference": "emailer_message__user_id"
     }
