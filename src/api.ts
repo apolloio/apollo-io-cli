@@ -1,7 +1,15 @@
 import { getValidCredentials } from './credentials.js';
 import type { ApolloJson } from './types.js';
 
-const BASE_URL = 'https://api.apollo.io/api/v1';
+const API_HOST = 'https://api.apollo.io';
+const BASE_URL = `${API_HOST}/api/v1`;
+
+// Paths starting with "//" are mounted off the host root (e.g. //analytics/api/v1/...);
+// regular paths resolve under /api/v1.
+function resolvePath(path: string): string {
+  if (path.startsWith('//')) return `${API_HOST}/${path.slice(2)}`;
+  return `${BASE_URL}${path}`;
+}
 
 async function getAuthHeaders(): Promise<Record<string, string>> {
   const creds = await getValidCredentials();
@@ -18,8 +26,10 @@ async function getAuthHeaders(): Promise<Record<string, string>> {
 
 export type QueryParams = Record<string, string | number | boolean | string[] | number[] | undefined | null>;
 
+export type HttpMethod = 'POST' | 'PATCH' | 'PUT' | 'DELETE';
+
 export async function apolloGet<T = ApolloJson>(path: string, params: QueryParams = {}): Promise<T> {
-  const url = new URL(`${BASE_URL}${path}`);
+  const url = new URL(resolvePath(path));
   for (const [key, value] of Object.entries(params)) {
     if (Array.isArray(value)) {
       for (const v of value) url.searchParams.append(`${key}[]`, String(v));
@@ -43,9 +53,13 @@ export async function apolloGet<T = ApolloJson>(path: string, params: QueryParam
   return await res.json() as T;
 }
 
-export async function apolloRequest<T = ApolloJson>(path: string, body: Record<string, unknown> = {}): Promise<T> {
-  const res = await fetch(`${BASE_URL}${path}`, {
-    method: 'POST',
+export async function apolloRequest<T = ApolloJson>(
+  path: string,
+  body: Record<string, unknown> = {},
+  method: HttpMethod = 'POST',
+): Promise<T> {
+  const res = await fetch(resolvePath(path), {
+    method,
     headers: {
       'Content-Type': 'application/json',
       'Cache-Control': 'no-cache',
