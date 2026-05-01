@@ -1,8 +1,48 @@
+import type { Command } from 'commander';
 import { apolloRequest } from '../api.js';
 import { print, FORMAT_OPTION } from '../output.js';
 import { parsePageOptions } from '../utils.js';
 
-export function registerCalls(program) {
+interface CallLogOptions {
+  contactId?: string;
+  accountId?: string;
+  opportunityId?: string;
+  from?: string;
+  to?: string;
+  start?: string;
+  end?: string;
+  duration?: string;
+  note?: string;
+  outcomeId?: string;
+  purposeId?: string;
+  status?: string;
+  callIdentifier?: string;
+  format?: string;
+}
+
+interface CallSearchOptions {
+  query?: string;
+  userId?: string;
+  contactId?: string;
+  accountId?: string;
+  sortBy?: string;
+  sortAsc?: boolean;
+  page?: string;
+  perPage?: string;
+  format?: string;
+}
+
+interface CallUpdateOptions {
+  id: string;
+  note?: string;
+  outcomeId?: string;
+  purposeId?: string;
+  status?: string;
+  contactId?: string;
+  format?: string;
+}
+
+export function registerCalls(program: Command): void {
   const calls = program.command('calls').description('Log, search, and update phone-call records');
 
   calls
@@ -22,8 +62,8 @@ export function registerCalls(program) {
     .option('--status <status>', 'Call status')
     .option('--call-identifier <id>', 'External identifier (upsert key)')
     .option(...FORMAT_OPTION)
-    .action(async (opts) => {
-      const body = {};
+    .action(async (opts: CallLogOptions) => {
+      const body: Record<string, unknown> = {};
       if (opts.contactId) body.contact_id = opts.contactId;
       if (opts.accountId) body.account_id = opts.accountId;
       if (opts.opportunityId) body.opportunity_id = opts.opportunityId;
@@ -53,8 +93,8 @@ export function registerCalls(program) {
     .option('--per-page <n>', 'Results per page', '10')
     .option('--page <n>', 'Page number', '1')
     .option(...FORMAT_OPTION)
-    .action(async (opts) => {
-      const body = parsePageOptions(opts);
+    .action(async (opts: CallSearchOptions) => {
+      const body: Record<string, unknown> = { ...parsePageOptions(opts) };
       if (opts.query) body.q_keywords = opts.query;
       if (opts.userId) body.user_id = opts.userId;
       if (opts.contactId) body.contact_id = opts.contactId;
@@ -75,8 +115,8 @@ export function registerCalls(program) {
     .option('--status <status>', 'Updated status')
     .option('--contact-id <id>', 'Reassign to a different contact')
     .option(...FORMAT_OPTION)
-    .action(async (opts) => {
-      const body = { id: opts.id };
+    .action(async (opts: CallUpdateOptions) => {
+      const body: Record<string, unknown> = { id: opts.id };
       if (opts.note) body.note = opts.note;
       if (opts.outcomeId) body.phone_call_outcome_id = opts.outcomeId;
       if (opts.purposeId) body.phone_call_purpose_id = opts.purposeId;

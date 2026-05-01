@@ -1,8 +1,22 @@
+import type { Command } from 'commander';
 import { apolloRequest } from '../api.js';
 import { print, FORMAT_OPTION } from '../output.js';
 import { parsePageOptions } from '../utils.js';
 
-export function registerNews(program) {
+interface NewsSearchOptions {
+  company?: string;
+  id?: string;
+  page?: string;
+  perPage?: string;
+  format?: string;
+}
+
+interface NewsAccountSearchResponse {
+  accounts?: Array<{ id?: string; organization_id?: string }>;
+  organizations?: Array<{ id?: string }>;
+}
+
+export function registerNews(program: Command): void {
   const news = program.command('news').description('Search news articles');
 
   news
@@ -13,7 +27,7 @@ export function registerNews(program) {
     .option('--per-page <n>', 'Results per page', '10')
     .option('--page <n>', 'Page number', '1')
     .option(...FORMAT_OPTION)
-    .action(async (opts) => {
+    .action(async (opts: NewsSearchOptions) => {
       if (!opts.company && !opts.id) {
         console.error('Error: provide --company or --id');
         process.exit(1);
@@ -23,7 +37,7 @@ export function registerNews(program) {
       let organizationId = opts.id;
 
       if (!organizationId) {
-        const searchData = await apolloRequest('/mixed_companies/search', {
+        const searchData = await apolloRequest<NewsAccountSearchResponse>('/mixed_companies/search', {
           q_organization_name: opts.company,
           per_page: 1,
           page: 1,
@@ -33,7 +47,7 @@ export function registerNews(program) {
         organizationId = searchData.accounts?.[0]?.organization_id
           || searchData.organizations?.[0]?.id;
         if (!organizationId) {
-          console.error(`No company found for name: ${opts.company}`);
+          console.error(`No company found for name: ${opts.company ?? ''}`);
           process.exit(1);
         }
       }

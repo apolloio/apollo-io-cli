@@ -1,8 +1,44 @@
+import type { Command } from 'commander';
 import { apolloRequest } from '../api.js';
 import { print, FORMAT_OPTION } from '../output.js';
 import { parsePageOptions } from '../utils.js';
 
-export function registerSequences(program) {
+interface SequenceSearchOptions {
+  query?: string;
+  page?: string;
+  perPage?: string;
+  format?: string;
+}
+
+interface SequenceAddContactsOptions {
+  id: string;
+  fromEmailAccount: string[];
+  contactId?: string[];
+  label?: string[];
+  fromEmail?: string;
+  email?: boolean;
+  unverifiedEmail?: boolean;
+  jobChange?: boolean;
+  activeInOther?: boolean;
+  finishedInOther?: boolean;
+  sameCompany?: boolean;
+  withoutOwnership?: boolean;
+  addIfInQueue?: boolean;
+  skipVerification?: boolean;
+  status?: string;
+  autoUnpauseAt?: string;
+  format?: string;
+}
+
+interface SequenceRemoveContactsOptions {
+  contactId: string[];
+  sequenceId: string[];
+  mode: string;
+  reason?: string;
+  format?: string;
+}
+
+export function registerSequences(program: Command): void {
   const seq = program.command('sequences').description('Search sequences and add or remove contacts');
 
   seq
@@ -12,9 +48,9 @@ export function registerSequences(program) {
     .option('--per-page <n>', 'Results per page', '10')
     .option('--page <n>', 'Page number', '1')
     .option(...FORMAT_OPTION)
-    .action(async (opts) => {
+    .action(async (opts: SequenceSearchOptions) => {
       const { page, per_page } = parsePageOptions(opts);
-      const body = { page: String(page), per_page: String(per_page) };
+      const body: Record<string, unknown> = { page: String(page), per_page: String(per_page) };
       if (opts.query) body.q_name = opts.query;
       const data = await apolloRequest('/emailer_campaigns/search', body);
       print(data, opts.format);
@@ -40,13 +76,13 @@ export function registerSequences(program) {
     .option('--status <status>', 'Initial status: active or paused')
     .option('--auto-unpause-at <iso>', 'ISO 8601 datetime to auto-unpause (with --status paused)')
     .option(...FORMAT_OPTION)
-    .action(async (opts) => {
+    .action(async (opts: SequenceAddContactsOptions) => {
       if (!opts.contactId && !opts.label) {
         console.error('Error: provide --contact-id or --label');
         process.exit(1);
       }
       const senders = opts.fromEmailAccount;
-      const body = {
+      const body: Record<string, unknown> = {
         id: opts.id,
         emailer_campaign_id: opts.id,
         send_email_from_email_account_id: senders.length === 1 ? senders[0] : senders,
@@ -77,8 +113,8 @@ export function registerSequences(program) {
     .option('--mode <mode>', 'remove or stop (default: remove)', 'remove')
     .option('--reason <text>', 'Stop reason (used with --mode stop)')
     .option(...FORMAT_OPTION)
-    .action(async (opts) => {
-      const body = {
+    .action(async (opts: SequenceRemoveContactsOptions) => {
+      const body: Record<string, unknown> = {
         contact_ids: opts.contactId,
         emailer_campaign_ids: opts.sequenceId,
         mode: opts.mode,

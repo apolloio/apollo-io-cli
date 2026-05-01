@@ -1,10 +1,42 @@
+import type { Command } from 'commander';
 import { apolloGet, apolloRequest } from '../api.js';
 import { print, FORMAT_OPTION } from '../output.js';
 import { parsePageOptions } from '../utils.js';
 
 const DEALS_BASE = '/opportunities';
 
-export function registerDeals(program) {
+interface DealsCreateOptions {
+  name: string;
+  ownerId?: string;
+  accountId?: string;
+  amount?: string;
+  currency?: string;
+  stageId?: string;
+  pipelineId?: string;
+  closeDate?: string;
+  description?: string;
+  format?: string;
+}
+
+interface DealsSearchOptions {
+  query?: string;
+  stageId?: string;
+  pipelineId?: string;
+  accountId?: string;
+  ownerId?: string;
+  sortBy?: string;
+  sortAsc?: boolean;
+  page?: string;
+  perPage?: string;
+  format?: string;
+}
+
+interface DealsShowOptions {
+  id: string;
+  format?: string;
+}
+
+export function registerDeals(program: Command): void {
   const deals = program.command('deals').description('Create, search, and view deals (opportunities)');
 
   deals
@@ -20,8 +52,8 @@ export function registerDeals(program) {
     .option('--close-date <date>', 'Expected close date (YYYY-MM-DD)')
     .option('--description <text>', 'Free-form description')
     .option(...FORMAT_OPTION)
-    .action(async (opts) => {
-      const body = { name: opts.name };
+    .action(async (opts: DealsCreateOptions) => {
+      const body: Record<string, unknown> = { name: opts.name };
       if (opts.ownerId) body.owner_id = opts.ownerId;
       if (opts.accountId) body.account_id = opts.accountId;
       if (opts.amount !== undefined) body.amount = Number(opts.amount);
@@ -47,8 +79,8 @@ export function registerDeals(program) {
     .option('--per-page <n>', 'Results per page', '10')
     .option('--page <n>', 'Page number', '1')
     .option(...FORMAT_OPTION)
-    .action(async (opts) => {
-      const body = parsePageOptions(opts);
+    .action(async (opts: DealsSearchOptions) => {
+      const body: Record<string, unknown> = { ...parsePageOptions(opts) };
       if (opts.query) body.q_keywords = opts.query;
       if (opts.stageId) body.opportunity_stage_id = opts.stageId;
       if (opts.pipelineId) body.opportunity_pipeline_id = opts.pipelineId;
@@ -65,7 +97,7 @@ export function registerDeals(program) {
     .description('Show a deal by Apollo opportunity ID')
     .requiredOption('--id <id>', 'Apollo opportunity ID')
     .option(...FORMAT_OPTION)
-    .action(async (opts) => {
+    .action(async (opts: DealsShowOptions) => {
       const data = await apolloGet(`${DEALS_BASE}/${opts.id}`);
       print(data, opts.format);
     });

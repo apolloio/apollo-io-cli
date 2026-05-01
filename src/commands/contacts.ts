@@ -1,8 +1,50 @@
+import type { Command } from 'commander';
 import { apolloRequest } from '../api.js';
 import { print, FORMAT_OPTION } from '../output.js';
 import { parsePageOptions } from '../utils.js';
 
-const CONTACT_FIELDS = [
+interface ContactFields {
+  firstName?: string;
+  lastName?: string;
+  email?: string;
+  organization?: string;
+  title?: string;
+  accountId?: string;
+  websiteUrl?: string;
+  address?: string;
+  directPhone?: string;
+  corporatePhone?: string;
+  mobilePhone?: string;
+  homePhone?: string;
+  otherPhone?: string;
+  label?: string[];
+}
+
+interface ContactCreateOptions extends ContactFields {
+  dedupe?: boolean;
+  format?: string;
+}
+
+interface ContactUpdateOptions extends ContactFields {
+  id: string;
+  format?: string;
+}
+
+interface ContactSearchOptions {
+  query?: string;
+  sortBy?: string;
+  sortAsc?: boolean;
+  page?: string;
+  perPage?: string;
+  format?: string;
+}
+
+interface ContactBulkCreateOptions {
+  file: string;
+  format?: string;
+}
+
+const CONTACT_FIELDS: Array<[keyof ContactFields, string]> = [
   ['firstName', 'first_name'],
   ['lastName', 'last_name'],
   ['email', 'email'],
@@ -18,16 +60,17 @@ const CONTACT_FIELDS = [
   ['otherPhone', 'other_phone'],
 ];
 
-function buildContactBody(opts) {
-  const body = {};
+function buildContactBody(opts: ContactFields): Record<string, unknown> {
+  const body: Record<string, unknown> = {};
   for (const [optKey, apiKey] of CONTACT_FIELDS) {
-    if (opts[optKey] !== undefined) body[apiKey] = opts[optKey];
+    const value = opts[optKey];
+    if (value !== undefined) body[apiKey] = value;
   }
   if (opts.label) body.label_names = opts.label;
   return body;
 }
 
-function addContactOptions(cmd) {
+function addContactOptions(cmd: Command): Command {
   return cmd
     .option('--first-name <name>', 'First name')
     .option('--last-name <name>', 'Last name')
@@ -45,7 +88,7 @@ function addContactOptions(cmd) {
     .option('--label <names...>', 'List name(s) the contact belongs to');
 }
 
-export function registerContacts(program) {
+export function registerContacts(program: Command): void {
   const contacts = program.command('contacts').description('Create, search, and manage contacts in your Apollo account');
 
   addContactOptions(
@@ -55,7 +98,7 @@ export function registerContacts(program) {
   )
     .option('--dedupe', 'Enable deduplication to avoid duplicate contacts')
     .option(...FORMAT_OPTION)
-    .action(async (opts) => {
+    .action(async (opts: ContactCreateOptions) => {
       const body = buildContactBody(opts);
       if (opts.dedupe) body.run_dedupe = true;
       const data = await apolloRequest('/contacts', body);
@@ -69,7 +112,7 @@ export function registerContacts(program) {
       .requiredOption('--id <id>', 'Apollo contact ID')
   )
     .option(...FORMAT_OPTION)
-    .action(async (opts) => {
+    .action(async (opts: ContactUpdateOptions) => {
       const body = buildContactBody(opts);
       const data = await apolloRequest(`/contacts/${opts.id}`, body, 'PATCH');
       print(data, opts.format);
@@ -77,15 +120,15 @@ export function registerContacts(program) {
 
   contacts
     .command('search')
-    .description('Search contacts in your team\'s Apollo account')
+    .description("Search contacts in your team's Apollo account")
     .option('-q, --query <keywords>', 'Free-text search across name/title/employer/email')
     .option('--sort-by <field>', 'Sort field (e.g. contact_last_activity_date, contact_created_at)')
     .option('--sort-asc', 'Sort ascending (default descending)')
     .option('--per-page <n>', 'Results per page', '10')
     .option('--page <n>', 'Page number', '1')
     .option(...FORMAT_OPTION)
-    .action(async (opts) => {
-      const body = parsePageOptions(opts);
+    .action(async (opts: ContactSearchOptions) => {
+      const body: Record<string, unknown> = { ...parsePageOptions(opts) };
       if (opts.query) body.q_keywords = opts.query;
       if (opts.sortBy) body.sort_by_field = opts.sortBy;
       if (opts.sortAsc) body.sort_ascending = true;
@@ -98,11 +141,13 @@ export function registerContacts(program) {
     .description('Create multiple contacts from a JSON file')
     .requiredOption('--file <path>', 'Path to JSON file containing an array of contact objects')
     .option(...FORMAT_OPTION)
-    .action(async (opts) => {
+    .action(async (opts: ContactBulkCreateOptions) => {
       const fs = await import('node:fs/promises');
       const text = await fs.readFile(opts.file, 'utf8');
-      const parsed = JSON.parse(text);
-      const arr = Array.isArray(parsed) ? parsed : parsed.contacts;
+      const parsed: unknown = JSON.parse(text);
+      const arr = Array.isArray(parsed)
+        ? parsed
+        : (parsed as { contacts?: unknown }).contacts;
       if (!Array.isArray(arr)) {
         console.error('Error: file must contain a JSON array of contact objects (or { "contacts": [...] })');
         process.exit(1);

@@ -1,8 +1,43 @@
-import { apolloGet, apolloRequest } from '../api.js';
+import type { Command } from 'commander';
+import { apolloGet, apolloRequest, type QueryParams } from '../api.js';
 import { print, FORMAT_OPTION } from '../output.js';
 import { parsePageOptions } from '../utils.js';
 
-const TASK_OPT_TO_API = [
+interface TaskCreateOptions {
+  userId: string;
+  type: string;
+  creatorId?: string;
+  title?: string;
+  note?: string;
+  priority?: string;
+  status?: string;
+  dueAt?: string;
+  contactId?: string;
+  accountId?: string;
+  opportunityId?: string;
+  format?: string;
+}
+
+interface TaskBulkCreateOptions {
+  file: string;
+  format?: string;
+}
+
+interface TaskSearchOptions {
+  query?: string;
+  userId?: string;
+  contactId?: string;
+  accountId?: string;
+  opportunityId?: string;
+  priority?: string;
+  sortBy?: string;
+  sortAsc?: boolean;
+  page?: string;
+  perPage?: string;
+  format?: string;
+}
+
+const TASK_OPT_TO_API: Array<[keyof TaskCreateOptions, string]> = [
   ['userId', 'user_id'],
   ['creatorId', 'creator_id'],
   ['type', 'type'],
@@ -16,7 +51,7 @@ const TASK_OPT_TO_API = [
   ['opportunityId', 'opportunity_id'],
 ];
 
-export function registerTasks(program) {
+export function registerTasks(program: Command): void {
   const tasks = program.command('tasks').description('Create, search, and bulk-create tasks');
 
   tasks
@@ -34,10 +69,11 @@ export function registerTasks(program) {
     .option('--account-id <id>', 'Associated account')
     .option('--opportunity-id <id>', 'Associated deal')
     .option(...FORMAT_OPTION)
-    .action(async (opts) => {
-      const body = {};
+    .action(async (opts: TaskCreateOptions) => {
+      const body: Record<string, unknown> = {};
       for (const [optKey, apiKey] of TASK_OPT_TO_API) {
-        if (opts[optKey] !== undefined) body[apiKey] = opts[optKey];
+        const value = opts[optKey];
+        if (value !== undefined) body[apiKey] = value;
       }
       const data = await apolloRequest('/tasks', body);
       print(data, opts.format);
@@ -48,11 +84,13 @@ export function registerTasks(program) {
     .description('Create multiple tasks from a JSON file')
     .requiredOption('--file <path>', 'Path to JSON file containing an array of task objects')
     .option(...FORMAT_OPTION)
-    .action(async (opts) => {
+    .action(async (opts: TaskBulkCreateOptions) => {
       const fs = await import('node:fs/promises');
       const text = await fs.readFile(opts.file, 'utf8');
-      const parsed = JSON.parse(text);
-      const arr = Array.isArray(parsed) ? parsed : parsed.tasks_attributes;
+      const parsed: unknown = JSON.parse(text);
+      const arr = Array.isArray(parsed)
+        ? parsed
+        : (parsed as { tasks_attributes?: unknown }).tasks_attributes;
       if (!Array.isArray(arr)) {
         console.error('Error: file must contain a JSON array of task objects (or { "tasks_attributes": [...] })');
         process.exit(1);
@@ -75,8 +113,8 @@ export function registerTasks(program) {
     .option('--per-page <n>', 'Results per page', '10')
     .option('--page <n>', 'Page number', '1')
     .option(...FORMAT_OPTION)
-    .action(async (opts) => {
-      const body = parsePageOptions(opts);
+    .action(async (opts: TaskSearchOptions) => {
+      const body: QueryParams = { ...parsePageOptions(opts) };
       if (opts.query) body.q_keywords = opts.query;
       if (opts.userId) body.user_id = opts.userId;
       if (opts.contactId) body.contact_id = opts.contactId;
