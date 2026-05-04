@@ -5,7 +5,9 @@ import { refreshAccessToken } from './oauth.js';
 import type { Credentials, OAuthTokenResponse } from './types.js';
 
 const TOKEN_EXPIRY_BUFFER_MS = 60 * 1000;
-const CREDENTIALS_PATH = join(homedir(), '.config', 'apollo', 'credentials');
+const APOLLO_CONFIG_DIR = join(homedir(), '.config', 'apollo');
+const CREDENTIALS_PATH = join(APOLLO_CONFIG_DIR, 'credentials');
+const CLIENT_ID_PATH = join(APOLLO_CONFIG_DIR, 'client_id');
 
 interface SaveOAuthArgs {
   clientId: string;
@@ -14,8 +16,20 @@ interface SaveOAuthArgs {
   expires_in?: number;
 }
 
+export function loadSavedClientId(): string | null {
+  if (!existsSync(CLIENT_ID_PATH)) return null;
+  const id = readFileSync(CLIENT_ID_PATH, 'utf8').trim();
+  return id || null;
+}
+
+function saveClientId(clientId: string): void {
+  mkdirSync(APOLLO_CONFIG_DIR, { recursive: true, mode: 0o700 });
+  writeFileSync(CLIENT_ID_PATH, clientId, { mode: 0o600 });
+}
+
 export function saveOAuthCredentials({ clientId, access_token, refresh_token, expires_in }: SaveOAuthArgs): void {
   mkdirSync(dirname(CREDENTIALS_PATH), { recursive: true, mode: 0o700 });
+  saveClientId(clientId);
   const payload: Credentials = {
     type: 'oauth',
     access_token,
