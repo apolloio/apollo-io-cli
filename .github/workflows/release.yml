@@ -51,21 +51,33 @@ jobs:
           repository: apolloio/homebrew-apollo-io-cli
           token: ${{ secrets.HOMEBREW_TAP_TOKEN }}
 
-      - name: Download release binaries
+      - name: Update formula
         run: |
+          set -euo pipefail
           VERSION=${GITHUB_REF_NAME#v}
-          curl -sL "https://github.com/apolloio/apollo-io-cli/releases/download/${GITHUB_REF_NAME}/apollo-macos-arm64" -o apollo-macos-arm64
-          curl -sL "https://github.com/apolloio/apollo-io-cli/releases/download/${GITHUB_REF_NAME}/apollo-macos-x64" -o apollo-macos-x64
+          BASE="https://github.com/apolloio/apollo-io-cli/releases/download/${GITHUB_REF_NAME}"
+          for bin in apollo-macos-arm64 apollo-macos-x64 apollo-linux-x64; do
+            curl -fsSL "${BASE}/${bin}" -o "${bin}"
+          done
           ARM64_SHA=$(shasum -a 256 apollo-macos-arm64 | awk '{print $1}')
           X64_SHA=$(shasum -a 256 apollo-macos-x64 | awk '{print $1}')
+          LINUX_X64_SHA=$(shasum -a 256 apollo-linux-x64 | awk '{print $1}')
           sed -i "s/version \".*\"/version \"${VERSION}\"/" Formula/apollo-io-cli.rb
           sed -i "/apollo-macos-arm64/{n;s/sha256 \".*\"/sha256 \"${ARM64_SHA}\"/}" Formula/apollo-io-cli.rb
           sed -i "/apollo-macos-x64/{n;s/sha256 \".*\"/sha256 \"${X64_SHA}\"/}" Formula/apollo-io-cli.rb
+          sed -i "/apollo-linux-x64/{n;s/sha256 \".*\"/sha256 \"${LINUX_X64_SHA}\"/}" Formula/apollo-io-cli.rb
 
-      - name: Commit and push updated formula
-        run: |
-          git config user.name "github-actions[bot]"
-          git config user.email "github-actions[bot]@users.noreply.github.com"
-          git add Formula/apollo-io-cli.rb
-          git commit -m "Update apollo-io-cli to ${GITHUB_REF_NAME}"
-          git push
+      - name: Open pull request on tap repo
+        uses: peter-evans/create-pull-request@c5a7806660adbe173f04e3e038b0ccdcd758773c # v6
+        with:
+          token: ${{ secrets.HOMEBREW_TAP_TOKEN }}
+          branch: bot/update-${{ github.ref_name }}
+          commit-message: "Update apollo-io-cli to ${{ github.ref_name }}"
+          title: "Update apollo-io-cli to ${{ github.ref_name }}"
+          body: |
+            Automated formula bump triggered by release ${{ github.ref_name }}.
+
+            Updates version and sha256 for all three release assets:
+            - `apollo-macos-arm64`
+            - `apollo-macos-x64`
+            - `apollo-linux-x64`
