@@ -57,11 +57,11 @@ jobs:
           VERSION=${GITHUB_REF_NAME#v}
           BASE="https://github.com/apolloio/apollo-io-cli/releases/download/${GITHUB_REF_NAME}"
           for bin in apollo-macos-arm64 apollo-macos-x64 apollo-linux-x64; do
-            curl -fsSL "${BASE}/${bin}" -o "${bin}"
+            curl -fsSL "${BASE}/${bin}" -o "/tmp/${bin}"
           done
-          ARM64_SHA=$(shasum -a 256 apollo-macos-arm64 | awk '{print $1}')
-          X64_SHA=$(shasum -a 256 apollo-macos-x64 | awk '{print $1}')
-          LINUX_X64_SHA=$(shasum -a 256 apollo-linux-x64 | awk '{print $1}')
+          ARM64_SHA=$(shasum -a 256 /tmp/apollo-macos-arm64 | awk '{print $1}')
+          X64_SHA=$(shasum -a 256 /tmp/apollo-macos-x64 | awk '{print $1}')
+          LINUX_X64_SHA=$(shasum -a 256 /tmp/apollo-linux-x64 | awk '{print $1}')
           sed -i "s/version \".*\"/version \"${VERSION}\"/" Formula/apollo-io-cli.rb
           sed -i "/apollo-macos-arm64/{n;s/sha256 \".*\"/sha256 \"${ARM64_SHA}\"/}" Formula/apollo-io-cli.rb
           sed -i "/apollo-macos-x64/{n;s/sha256 \".*\"/sha256 \"${X64_SHA}\"/}" Formula/apollo-io-cli.rb
@@ -74,6 +74,7 @@ jobs:
           branch: bot/update-${{ github.ref_name }}
           commit-message: "Update apollo-io-cli to ${{ github.ref_name }}"
           title: "Update apollo-io-cli to ${{ github.ref_name }}"
+          add-paths: Formula/apollo-io-cli.rb
           body: |
             Automated formula bump triggered by release ${{ github.ref_name }}.
 
