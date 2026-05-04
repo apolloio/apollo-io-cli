@@ -6,6 +6,21 @@ A command-line interface for the [Apollo.io API](https://apolloio.github.io/apol
 
 ## Installation
 
+### Homebrew (macOS / Linux)
+
+```bash
+brew install apolloio/apollo-io-cli/apollo-io-cli
+```
+
+Or tap once then install by short name:
+
+```bash
+brew tap apolloio/apollo-io-cli
+brew install apollo-io-cli
+```
+
+Upgrade with `brew upgrade apollo-io-cli`.
+
 ### Download a prebuilt binary (no Node required)
 
 Download the latest binary for your platform from the [releases page](https://github.com/apolloio/apollo-io-cli/releases):
