@@ -48,11 +48,32 @@ function toCsv(rows: Row[]): string {
   ].join('\r\n');
 }
 
+const MAX_CELL_WIDTH = 50;
+
+function truncate(s: string): string {
+  const flat = s.replace(/\r?\n/g, ' ');
+  return flat.length > MAX_CELL_WIDTH ? `${flat.slice(0, MAX_CELL_WIDTH - 1)}…` : flat;
+}
+
 function toTable(rows: Row[]): string {
   if (!rows.length) return '(no results)';
+
+  // Auto-unwrap single-row API envelope objects (e.g. { total_entries: N, people: [...] })
+  if (rows.length === 1) {
+    const [envelope] = rows;
+    const arrayKey = Object.keys(envelope ?? {}).find(k => {
+      const v = envelope?.[k];
+      return Array.isArray(v) && v.length > 0 && typeof v[0] === 'object';
+    });
+    if (arrayKey) rows = envelope![arrayKey] as Row[];
+  }
+
+  if (!rows.length) return '(no results)';
+
   const headers = allKeys(rows);
-  const colWidths = headers.map(h =>
-    rows.reduce((max, r) => Math.max(max, stringify(r[h]).length), h.length)
+  const cells = rows.map(r => headers.map(h => truncate(stringify(r[h]))));
+  const colWidths = headers.map((h, i) =>
+    cells.reduce((max, row) => Math.max(max, (row[i] ?? '').length), h.length)
   );
   const sep = '+' + colWidths.map(w => '-'.repeat(w + 2)).join('+') + '+';
   const fmt = (vals: string[]): string =>
@@ -61,7 +82,7 @@ function toTable(rows: Row[]): string {
     sep,
     fmt(headers),
     sep,
-    ...rows.map(r => fmt(headers.map(h => stringify(r[h])))),
+    ...cells.map(row => fmt(row)),
     sep,
   ].join('\n');
 }
