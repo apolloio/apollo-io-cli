@@ -1,5 +1,6 @@
 import { getValidCredentials } from './credentials.js';
 import type { ApolloJson } from './types.js';
+import pkg from '../package.json' with { type: 'json' };
 
 const API_HOST = 'https://api.apollo.io';
 const BASE_URL = `${API_HOST}/api/v1`;
@@ -41,7 +42,8 @@ export async function apolloGet<T = ApolloJson>(path: string, params: QueryParam
     method: 'GET',
     headers: {
       'Cache-Control': 'no-cache',
-      'User-Agent': 'apollo-io-cli/1.0',
+      'User-Agent': `apollo-io-cli/${pkg.version}`,
+      'X-Apollo-Source': 'apollo-cli',
       ...await getAuthHeaders(),
     },
   });
@@ -63,7 +65,8 @@ export async function apolloRequest<T = ApolloJson>(
     headers: {
       'Content-Type': 'application/json',
       'Cache-Control': 'no-cache',
-      'User-Agent': 'apollo-io-cli/1.0',
+      'User-Agent': `apollo-io-cli/${pkg.version}`,
+      'X-Apollo-Source': 'apollo-cli',
       ...await getAuthHeaders(),
     },
     body: JSON.stringify(body),
