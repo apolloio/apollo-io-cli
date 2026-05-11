@@ -47,8 +47,9 @@ export function registerAuth(program: Command): void {
         console.log('Not logged in.');
         return;
       }
-      const data = await apolloGet('/users/api_profile') as { user?: { name?: string; email?: string } };
-      const { name, email } = data.user ?? {};
-      console.log(`Logged in as ${name ?? 'unknown'} (${email ?? 'unknown'})`);
+      const data = await apolloGet('/users/api_profile') as { first_name?: string; last_name?: string; email?: string };
+      const name = [data.first_name, data.last_name].filter(Boolean).join(' ') || 'unknown';
+      const email = data.email ?? 'unknown';
+      console.log(`Logged in as ${name} (${email})`);
     });
 }
