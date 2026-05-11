@@ -104,9 +104,13 @@ export async function revokeToken(accessToken: string, clientId: string): Promis
 }
 
 function openBrowser(url: string): void {
-  if (process.platform === 'darwin') spawnSync('open', [url]);
-  else if (process.platform === 'win32') spawnSync('cmd', ['/c', 'start', '', url]);
-  else spawnSync('xdg-open', [url]);
+  const result =
+    process.platform === 'darwin' ? spawnSync('open', [url]) :
+    process.platform === 'win32'  ? spawnSync('cmd', ['/c', 'start', '', url]) :
+                                    spawnSync('xdg-open', [url]);
+  if (result.error || result.status !== 0) {
+    console.log(`\nCould not open browser automatically. Visit:\n${url}\n`);
+  }
 }
 
 export async function oauthLogin(): Promise<OAuthLoginResult> {
@@ -163,11 +167,7 @@ export async function oauthLogin(): Promise<OAuthLoginResult> {
 
     server.listen(REDIRECT_PORT, '127.0.0.1', () => {
       console.log('Opening browser for Apollo login...');
-      try {
-        openBrowser(authUrl);
-      } catch {
-        console.log(`\nCould not open browser automatically. Visit:\n${authUrl}\n`);
-      }
+      openBrowser(authUrl);
       console.log('Waiting for authorization...');
     });
 
