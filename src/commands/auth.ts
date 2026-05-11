@@ -1,6 +1,7 @@
 import type { Command } from 'commander';
 import { saveOAuthCredentials, clearCredentials, loadCredentials } from '../credentials.js';
 import { oauthLogin, revokeToken } from '../oauth.js';
+import { apolloGet } from '../api.js';
 
 export function registerAuth(program: Command): void {
   const auth = program.command('auth').description('Manage Apollo.io credentials');
@@ -39,13 +40,15 @@ export function registerAuth(program: Command): void {
 
   auth
     .command('whoami')
-    .description('Show current credentials')
-    .action(() => {
+    .description('Show the currently authenticated user')
+    .action(async () => {
       const creds = loadCredentials();
       if (!creds) {
         console.log('Not logged in.');
-      } else {
-        console.log('Logged in via OAuth.');
+        return;
       }
+      const data = await apolloGet('/users/api_profile') as { user?: { name?: string; email?: string } };
+      const { name, email } = data.user ?? {};
+      console.log(`Logged in as ${name ?? 'unknown'} (${email ?? 'unknown'})`);
     });
 }
