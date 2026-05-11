@@ -3,6 +3,7 @@ import crypto from 'crypto';
 import { spawnSync } from 'child_process';
 import type { IncomingMessage, ServerResponse } from 'http';
 import type { OAuthLoginResult, OAuthTokenResponse } from './types.js';
+import { loadSavedClientId } from './credentials.js';
 
 const APOLLO_MCP_BASE = 'https://mcp.apollo.io';
 const REDIRECT_PORT = 3421;
@@ -46,6 +47,7 @@ async function registerClient(): Promise<string> {
     headers: { 'Content-Type': 'application/json', 'User-Agent': 'apollo-io-cli/1.0' },
     body: JSON.stringify({
       client_name: 'Apollo CLI',
+      logo_uri: 'https://storage.googleapis.com/app-public-assets/eternal/apollo-cli-logo.svg',
       redirect_uris: [REDIRECT_URI],
       token_endpoint_auth_method: 'none',
       grant_types: ['authorization_code'],
@@ -114,7 +116,7 @@ function openBrowser(url: string): void {
 }
 
 export async function oauthLogin(): Promise<OAuthLoginResult> {
-  const clientId = await registerClient();
+  const clientId = loadSavedClientId() ?? await registerClient();
   const { verifier, challenge } = generatePKCE();
   const state = crypto.randomBytes(16).toString('hex');
 
