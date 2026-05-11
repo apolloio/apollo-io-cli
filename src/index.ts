@@ -39,4 +39,23 @@ registerEmailAccounts(program);
 registerUsage(program);
 registerAnalytics(program);
 
+program.addHelpCommand(false);
+program.addCommand(
+  new Command('help')
+    .argument('[commands...]', 'command path (e.g. people search)')
+    .description('Display help for a command')
+    .action((cmds: string[]) => {
+      let cmd: Command = program;
+      for (const name of cmds) {
+        const sub = cmd.commands.find((c) => c.name() === name);
+        if (!sub) {
+          console.error(`Unknown command: ${cmds.join(' ')}`);
+          process.exit(1);
+        }
+        cmd = sub;
+      }
+      cmd.help();
+    })
+);
+
 program.parse();
