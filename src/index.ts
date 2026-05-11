@@ -24,19 +24,19 @@ program
   .description('CLI for the Apollo.io API')
   .version(pkg.version);
 
-registerAuth(program);
-registerPeople(program);
-registerCompanies(program);
-registerNews(program);
-registerContacts(program);
 registerAccounts(program);
-registerDeals(program);
-registerSequences(program);
-registerCalls(program);
-registerTasks(program);
-registerUsers(program);
-registerEmailAccounts(program);
-registerUsage(program);
 registerAnalytics(program);
+registerAuth(program);
+registerCalls(program);
+registerCompanies(program);
+registerContacts(program);
+registerDeals(program);
+registerEmailAccounts(program);
+registerNews(program);
+registerPeople(program);
+registerSequences(program);
+registerTasks(program);
+registerUsage(program);
+registerUsers(program);
 
 program.parse();
