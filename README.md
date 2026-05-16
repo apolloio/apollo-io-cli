@@ -432,7 +432,7 @@ apollo people search --title "CTO" --domain stripe.com --format csv > ctos.csv
 > Search/list responses include both pagination metadata and an array of records. `csv` and `table` formats render these as two columns with the array stringified — for analysis, prefer `json` + `jq` to project just the records:
 >
 > ```bash
-> apollo companies search --industry saas --format json | jq '.organizations[]' --compact-output > orgs.jsonl
+> apollo companies search --industry saas --format json | jq '.accounts[]' --compact-output > orgs.jsonl
 > ```
 
 ## Piping with jq
@@ -446,10 +446,10 @@ apollo people search --title "VP Engineering" --city "San Francisco" --domain st
 
 # Get all job posting titles at a company
 apollo companies jobs --id abc123 \
-  | jq '.job_postings[].title'
+  | jq '.organization_job_postings[].title'
 
 # Find Series B SaaS companies in the US and extract their domains
 apollo companies search --industry SaaS --funding "5000000,20000000" --location "United States" \
-  | jq '.organizations[].primary_domain'
+  | jq '.accounts[].primary_domain'
 ```
 
