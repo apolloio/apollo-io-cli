@@ -1,7 +1,7 @@
 ---
 name: apollo-cli
 description: This skill should be used when searching for people, companies, employees, job postings, or news, OR when driving CRM data (contacts, accounts, deals), sequences, phone calls, tasks, analytics, or credit usage in Apollo.io from the terminal. Activates when the user asks to "find people", "search companies", "enrich a contact", "look up employees", "find jobs at a company", "get company news", "create a contact / account / deal", "log a call", "create a task", "add to sequence", "check analytics", "view credit usage", or any task involving Apollo.io data lookup or CRM writes from the terminal.
-version: 2.0.0
+version: 3.0.0
 ---
 
 # Apollo CLI Skill
@@ -237,7 +237,7 @@ For a single user's balance, prefer `apollo users profile --credits`.
 apollo analytics report --payload ./report.json
 ```
 
-Minimal payload (each metric needs `key`, `smart_datetime_reference`, and `smart_user_id_reference`):
+Minimal payload (each metric needs `value`, `smart_datetime_reference`, and `smart_user_id_reference`):
 
 ```json
 {
@@ -291,11 +291,11 @@ apollo people search --title "VP Engineering" --domain stripe.com \
 
 # All job posting titles at a company
 apollo companies jobs --id abc123 \
-  | jq '.job_postings[].title'
+  | jq '.organization_job_postings[].title'
 
 # Primary domains of Series B SaaS companies in the US
 apollo companies search --industry SaaS --funding "5000000,20000000" --location "United States" \
-  | jq '.organizations[].primary_domain'
+  | jq '.accounts[].primary_domain'
 ```
 
 ## JSON Response Keys
@@ -305,9 +305,10 @@ apollo companies search --industry SaaS --funding "5000000,20000000" --location 
 | `people search` / `people employees` | `.people[]` |
 | `people enrich` | `.person` |
 | `people bulk-enrich` | `.matches[]` |
-| `companies search` | `.organizations[]` |
-| `companies enrich` / `companies get` | `.organization` |
-| `companies jobs` | `.job_postings[]` |
+| `companies search` | `.accounts[]` |
+| `companies enrich` / `companies bulk-enrich` | `.organization` / `.organizations[]` |
+| `companies get` | `.accounts[0]` (filtered by org ID via mixed_companies/search) |
+| `companies jobs` | `.organization_job_postings[]` |
 | `news search` | `.news_articles[]` |
 | `contacts search` | `.contacts[]` (+ `.pagination`) |
 | `contacts create` / `contacts update` | `.contact` |
@@ -327,4 +328,4 @@ apollo companies search --industry SaaS --funding "5000000,20000000" --location 
 | `users search` | `.users[]` (+ `.pagination`) |
 | `email-accounts list` | `.email_accounts[]` |
 | `usage credits` | `.credit_usage_stats` (object keyed by credit type) |
-| `analytics report` | `.success`, `.summary`, plus result rows — schema matches Apollo's sync_report response |
+| `analytics report` | `.response` (primary result data), `.incompatible_filters`, `.computed_filters`, `.goals` |
