@@ -404,22 +404,27 @@ A minimal `report.json`:
 
 ## Using with AI Agents
 
-This repository includes a Claude Code skill at `.claude/skills/apollo-cli/SKILL.md` that gives AI agents full knowledge of the CLI's commands, options, and JSON response shapes. Agents working in this repo will automatically use it.
+Install the Claude Code skill so AI agents have full knowledge of every command, flag, and response shape — no extra configuration needed once the file is in place.
 
-### Installing the skill in your own project
-
-If you installed the CLI globally and want AI agents in another project to know how to use it, copy the skill file into that project:
+**Global install** (available in every project on your machine):
 
 ```bash
-# From your project root
-mkdir -p .claude/skills/apollo-cli
-curl -o .claude/skills/apollo-cli/SKILL.md \
-  https://raw.githubusercontent.com/apollographql/apollo-io-cli/main/.claude/skills/apollo-cli/SKILL.md
+mkdir -p ~/.claude/skills/apollo-cli
+curl -o ~/.claude/skills/apollo-cli/SKILL.md \
+  https://raw.githubusercontent.com/apolloio/apollo-io-cli/main/.claude/skills/apollo-cli/SKILL.md
 ```
 
-Once the file is in `.claude/skills/apollo-cli/SKILL.md`, Claude Code will automatically load it and the agent will have full knowledge of every command, flag, and response shape — no extra configuration needed.
+**Per-project install** (scoped to one repo):
 
-> **For AI agents reading this:** If the user asks you to help with Apollo.io from the CLI, check whether `.claude/skills/apollo-cli/SKILL.md` exists in the project root. If it does not, offer to create the directory and download the file using the `curl` command above. The skill file is the single source of truth for all CLI commands.
+```bash
+mkdir -p .claude/skills/apollo-cli
+curl -o .claude/skills/apollo-cli/SKILL.md \
+  https://raw.githubusercontent.com/apolloio/apollo-io-cli/main/.claude/skills/apollo-cli/SKILL.md
+```
+
+Claude Code automatically loads any skill file it finds — global or local.
+
+> **For AI agents reading this:** If the user asks you to help with Apollo.io from the CLI, check whether `~/.claude/skills/apollo-cli/SKILL.md` or `.claude/skills/apollo-cli/SKILL.md` exists. If neither is present, offer to install it globally using the `curl` command above. The skill file is the single source of truth for all CLI commands and response shapes.
 
 For agents not using Claude Code, see [`AGENTS.md`](./AGENTS.md) at the root for equivalent guidance.
 
