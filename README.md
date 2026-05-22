@@ -30,6 +30,7 @@ Download the latest binary for your platform from the [releases page](https://gi
 | macOS (Apple Silicon) | `apollo-macos-arm64` |
 | macOS (Intel) | `apollo-macos-x64` |
 | Linux (x64) | `apollo-linux-x64` |
+| Windows (x64) | `apollo-windows-x64.exe` |
 
 Then make it executable and move it to your PATH:
 
@@ -45,6 +46,12 @@ Then make it executable and move it to your PATH:
 chmod +x apollo-macos-arm64
 mv apollo-macos-arm64 /usr/local/bin/apollo
 xattr -d com.apple.quarantine /usr/local/bin/apollo
+```
+
+On Windows, rename the binary to `apollo.exe` and place it in a directory on your `PATH` (e.g. `%USERPROFILE%\bin`):
+
+```powershell
+Move-Item .\apollo-windows-x64.exe "$env:USERPROFILE\bin\apollo.exe"
 ```
 
 ### From source (requires Node 18+)
@@ -421,6 +428,17 @@ mkdir -p .claude/skills/apollo-cli
 curl -o .claude/skills/apollo-cli/SKILL.md \
   https://raw.githubusercontent.com/apolloio/apollo-io-cli/main/.claude/skills/apollo-cli/SKILL.md
 ```
+
+**Windows (PowerShell)** — global install:
+
+```powershell
+New-Item -ItemType Directory -Force "$env:USERPROFILE\.claude\skills\apollo-cli" | Out-Null
+Invoke-WebRequest `
+  -Uri https://raw.githubusercontent.com/apolloio/apollo-io-cli/main/.claude/skills/apollo-cli/SKILL.md `
+  -OutFile "$env:USERPROFILE\.claude\skills\apollo-cli\SKILL.md"
+```
+
+Per-project install on Windows: swap `$env:USERPROFILE\.claude` for `.claude` in the path above.
 
 Claude Code automatically loads any skill file it finds — global or local.
 

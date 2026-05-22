@@ -25,7 +25,7 @@ jobs:
           GPG_PASSPHRASE: ${{ secrets.GPG_PASSPHRASE }}
         run: |
           echo "$GPG_PRIVATE_KEY" | gpg --batch --import
-          for bin in dist/apollo-macos-arm64 dist/apollo-macos-x64 dist/apollo-linux-x64; do
+          for bin in dist/apollo-macos-arm64 dist/apollo-macos-x64 dist/apollo-linux-x64 dist/apollo-windows-x64.exe; do
             echo "$GPG_PASSPHRASE" | gpg --batch --yes --passphrase-fd 0 \
               --pinentry-mode loopback --detach-sign --armor "$bin"
           done
@@ -40,6 +40,8 @@ jobs:
             dist/apollo-macos-x64.asc
             dist/apollo-linux-x64
             dist/apollo-linux-x64.asc
+            dist/apollo-windows-x64.exe
+            dist/apollo-windows-x64.exe.asc
 
   update-homebrew-tap:
     needs: build
