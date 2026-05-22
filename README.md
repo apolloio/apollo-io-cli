@@ -429,6 +429,17 @@ curl -o .claude/skills/apollo-cli/SKILL.md \
   https://raw.githubusercontent.com/apolloio/apollo-io-cli/main/.claude/skills/apollo-cli/SKILL.md
 ```
 
+**Windows (PowerShell)** — global install:
+
+```powershell
+New-Item -ItemType Directory -Force "$env:USERPROFILE\.claude\skills\apollo-cli" | Out-Null
+Invoke-WebRequest `
+  -Uri https://raw.githubusercontent.com/apolloio/apollo-io-cli/main/.claude/skills/apollo-cli/SKILL.md `
+  -OutFile "$env:USERPROFILE\.claude\skills\apollo-cli\SKILL.md"
+```
+
+Per-project install on Windows: swap `$env:USERPROFILE\.claude` for `.claude` in the path above.
+
 Claude Code automatically loads any skill file it finds — global or local.
 
 > **For AI agents reading this:** If the user asks you to help with Apollo.io from the CLI, check whether `~/.claude/skills/apollo-cli/SKILL.md` or `.claude/skills/apollo-cli/SKILL.md` exists. If neither is present, offer to install it globally using the `curl` command above. The skill file is the single source of truth for all CLI commands and response shapes.
