@@ -30,6 +30,7 @@ Download the latest binary for your platform from the [releases page](https://gi
 | macOS (Apple Silicon) | `apollo-macos-arm64` |
 | macOS (Intel) | `apollo-macos-x64` |
 | Linux (x64) | `apollo-linux-x64` |
+| Windows (x64) | `apollo-windows-x64.exe` |
 
 Then make it executable and move it to your PATH:
 
@@ -45,6 +46,12 @@ Then make it executable and move it to your PATH:
 chmod +x apollo-macos-arm64
 mv apollo-macos-arm64 /usr/local/bin/apollo
 xattr -d com.apple.quarantine /usr/local/bin/apollo
+```
+
+On Windows, rename the binary to `apollo.exe` and place it in a directory on your `PATH` (e.g. `%USERPROFILE%\bin`):
+
+```powershell
+Move-Item .\apollo-windows-x64.exe "$env:USERPROFILE\bin\apollo.exe"
 ```
 
 ### From source (requires Node 18+)
