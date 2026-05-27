@@ -59,7 +59,7 @@ export function registerPeople(program: Command): void {
     .option('--department <depts...>', 'Department(s) to filter by (e.g. engineering sales)')
     .option('--technology <techs...>', "Technology UIDs the person's company uses")
     .option('--domain <domains...>', 'Company domain(s) to filter by')
-    .option('--industry <industries...>', 'Industry(s) to filter by')
+    .option('--industry <tagIds...>', 'Industry tag ID(s) (opaque IDs like 5567cd4773696439b10b0000, not free-text names)')
     .option('--per-page <n>', 'Results per page', '10')
     .option('--page <n>', 'Page number', '1')
     .option(...FORMAT_OPTION)

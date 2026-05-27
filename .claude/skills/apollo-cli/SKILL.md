@@ -34,6 +34,8 @@ apollo people search --title "CTO" --seniority c_suite --city "San Francisco"
 apollo people search --department engineering --technology react --per-page 25
 ```
 
+> Note: `people search --industry` expects Apollo industry **tag IDs** (e.g. `5567cd4773696439b10b0000`), not free-text names like `"artificial intelligence"`. Passing free text returns HTTP 422. `companies search --industry` does accept free-text keyword tags.
+
 **Enrich a person (provide at least one identifier):**
 
 ```bash
