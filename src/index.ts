@@ -1,7 +1,8 @@
 #!/usr/bin/env node
 
-import { Command } from 'commander';
+import { Command, Option } from 'commander';
 import pkg from '../package.json' with { type: 'json' };
+import './env.js';
 import { registerAuth } from './commands/auth.js';
 import { registerPeople } from './commands/people.js';
 import { registerCompanies } from './commands/companies.js';
@@ -22,7 +23,8 @@ const program = new Command();
 program
   .name('apollo')
   .description('CLI for the Apollo.io API')
-  .version(pkg.version);
+  .version(pkg.version)
+  .addOption(new Option('--staging', 'hit Apollo staging').hideHelp());
 
 registerAccounts(program);
 registerAnalytics(program);

@@ -4,8 +4,9 @@ import { spawnSync } from 'child_process';
 import type { IncomingMessage, ServerResponse } from 'http';
 import type { OAuthLoginResult, OAuthTokenResponse } from './types.js';
 import { loadSavedClientId } from './credentials.js';
+import { MCP_HOST } from './env.js';
 
-const APOLLO_MCP_BASE = 'https://mcp.apollo.io';
+const APOLLO_MCP_BASE = MCP_HOST;
 const REDIRECT_PORT = 3421;
 const REDIRECT_URI = `http://localhost:${REDIRECT_PORT}/callback`;
 const SCOPES = [
