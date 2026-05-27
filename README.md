@@ -94,9 +94,11 @@ apollo people search --department engineering --technology react --per-page 25
 | `--department` | Department(s): `engineering` `sales` `marketing` etc. |
 | `--technology` | Technology UIDs the person's company uses |
 | `--domain` | Company domain(s) |
-| `--industry` | Industry tag(s) |
+| `--industry` | Industry tag ID(s) — opaque IDs like `5567cd4773696439b10b0000`, not free-text names |
 | `--per-page` | Results per page (default: 10) |
 | `--page` | Page number (default: 1) |
+
+> Note: `--industry` expects Apollo industry tag IDs, not free-text names. Free-text values return HTTP 422.
 
 #### `enrich`
 
