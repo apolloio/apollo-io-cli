@@ -83,22 +83,34 @@ Search Apollo's database for people.
 apollo people search --title "VP Engineering" --city "San Francisco"
 apollo people search --title "CTO" --seniority c_suite --domain stripe.com
 apollo people search --department engineering --technology react --per-page 25
+
+# Company-attribute filters apply to the person's employer — combine them to
+# target people by title AND their company's size, hiring activity, etc. in one call:
+apollo people search --title CTO --employees "51,200" --hiring-for "Software Engineer"
 ```
 
 | Option | Description |
 |---|---|
 | `-q, --query` | Name or keyword query |
 | `--title` | Job title(s) |
-| `--city` | Location(s) (city, state, country) |
+| `--city` | Person location(s) (city, state, country) |
 | `--seniority` | Seniority level(s): `manager` `director` `vp` `c_suite` etc. |
 | `--department` | Department(s): `engineering` `sales` `marketing` etc. |
 | `--technology` | Technology UIDs the person's company uses |
 | `--domain` | Company domain(s) |
 | `--industry` | Industry tag ID(s) — opaque IDs like `5567cd4773696439b10b0000`, not free-text names |
+| `--company-location` | Person's company HQ location(s) |
+| `--employees` | Company employee range, e.g. `"11,50"` or `"51,200"` |
+| `--hiring-for` | People whose company is currently hiring for job title(s) |
+| `--revenue` | Company revenue range as `"min,max"` |
+| `--funding` | Company latest funding amount as `"min,max"` |
+| `--total-funding` | Company total funding raised as `"min,max"` |
 | `--per-page` | Results per page (default: 10) |
 | `--page` | Page number (default: 1) |
 
 > Note: `--industry` expects Apollo industry tag IDs, not free-text names. Free-text values return HTTP 422.
+>
+> Tip: the company-attribute filters (`--employees`, `--hiring-for`, `--industry`, `--revenue`, `--funding`, `--total-funding`, `--company-location`) all run against the person's employer, so you no longer need a two-step "search companies → pipe domains into `--domain`" pipeline for those criteria — do it in a single `people search` call.
 
 #### `enrich`
 

@@ -34,6 +34,13 @@ apollo people search --title "CTO" --seniority c_suite --city "San Francisco"
 apollo people search --department engineering --technology react --per-page 25
 ```
 
+**Filter people by their company's attributes in a single call** — `--employees`, `--hiring-for`, `--industry`, `--revenue`, `--funding`, `--total-funding`, and `--company-location` all apply to the person's employer. Prefer this over a two-step "search companies → pipe domains into `--domain`" pipeline:
+
+```bash
+# CTOs at 51–200 person companies that are currently hiring software engineers
+apollo people search --title CTO --employees "51,200" --hiring-for "Software Engineer"
+```
+
 > Note: `people search --industry` expects Apollo industry **tag IDs** (e.g. `5567cd4773696439b10b0000`), not free-text names like `"artificial intelligence"`. Passing free text returns HTTP 422. `companies search --industry` does accept free-text keyword tags.
 
 **Enrich a person (provide at least one identifier):**

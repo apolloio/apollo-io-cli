@@ -20,3 +20,8 @@ export function parsePageOptions(opts: PageOptionInput): PageOptions {
 
   return { page, per_page };
 }
+
+export function parseRange(input: string): { min: string; max: string } {
+  const [min, max] = input.split(',');
+  return { min: min ?? '', max: max ?? '' };
+}

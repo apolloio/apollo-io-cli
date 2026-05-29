@@ -1,7 +1,7 @@
 import type { Command } from 'commander';
 import { apolloGet, apolloRequest } from '../api.js';
 import { print, FORMAT_OPTION } from '../output.js';
-import { parsePageOptions } from '../utils.js';
+import { parsePageOptions, parseRange } from '../utils.js';
 
 interface PeopleSearchOptions {
   query?: string;
@@ -12,6 +12,12 @@ interface PeopleSearchOptions {
   technology?: string[];
   domain?: string[];
   industry?: string[];
+  companyLocation?: string[];
+  employees?: string;
+  hiringFor?: string[];
+  revenue?: string;
+  funding?: string;
+  totalFunding?: string;
   page?: string;
   perPage?: string;
   format?: string;
@@ -60,6 +66,12 @@ export function registerPeople(program: Command): void {
     .option('--technology <techs...>', "Technology UIDs the person's company uses")
     .option('--domain <domains...>', 'Company domain(s) to filter by')
     .option('--industry <tagIds...>', 'Industry tag ID(s) (opaque IDs like 5567cd4773696439b10b0000, not free-text names)')
+    .option('--company-location <locations...>', "Filter by the person's company HQ location(s)")
+    .option('--employees <range>', 'Company employee range (e.g. "11,50" or "51,200")')
+    .option('--hiring-for <titles...>', 'Filter to people whose company is currently hiring for job title(s)')
+    .option('--revenue <range>', 'Company revenue range as "min,max" (e.g. "1000000,5000000")')
+    .option('--funding <range>', 'Company latest funding amount as "min,max"')
+    .option('--total-funding <range>', 'Company total funding raised as "min,max"')
     .option('--per-page <n>', 'Results per page', '10')
     .option('--page <n>', 'Page number', '1')
     .option(...FORMAT_OPTION)
@@ -74,6 +86,12 @@ export function registerPeople(program: Command): void {
       if (opts.technology) body.currently_using_any_of_technology_uids = opts.technology;
       if (opts.domain) body.q_organization_domains_list = opts.domain;
       if (opts.industry) body.organization_industry_tag_ids = opts.industry;
+      if (opts.companyLocation) body.organization_locations = opts.companyLocation;
+      if (opts.employees) body.organization_num_employees_ranges = [opts.employees];
+      if (opts.hiringFor) body.q_organization_job_titles = opts.hiringFor;
+      if (opts.revenue) body.revenue_range = parseRange(opts.revenue);
+      if (opts.funding) body.latest_funding_amount_range = parseRange(opts.funding);
+      if (opts.totalFunding) body.total_funding_range = parseRange(opts.totalFunding);
 
       const data = await apolloRequest('/mixed_people/api_search', body);
       print(data, opts.format);

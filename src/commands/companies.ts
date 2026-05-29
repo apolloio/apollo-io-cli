@@ -1,7 +1,7 @@
 import type { Command } from 'commander';
 import { apolloGet, apolloRequest } from '../api.js';
 import { print, FORMAT_OPTION } from '../output.js';
-import { parsePageOptions } from '../utils.js';
+import { parsePageOptions, parseRange } from '../utils.js';
 
 interface CompaniesSearchOptions {
   query?: string;
@@ -51,11 +51,6 @@ interface AccountRecord {
 
 interface CompaniesSearchResponse {
   accounts?: AccountRecord[];
-}
-
-function parseRange(input: string): { min: string; max: string } {
-  const [min, max] = input.split(',');
-  return { min: min ?? '', max: max ?? '' };
 }
 
 export function registerCompanies(program: Command): void {
