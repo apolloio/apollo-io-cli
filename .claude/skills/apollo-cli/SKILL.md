@@ -34,21 +34,34 @@ apollo people search --title "CTO" --seniority c_suite --city "San Francisco"
 apollo people search --department engineering --technology react --per-page 25
 ```
 
-> Note: `people search --industry` expects Apollo industry **tag IDs** (e.g. `5567cd4773696439b10b0000`), not free-text names like `"artificial intelligence"`. Passing free text returns HTTP 422. `companies search --industry` does accept free-text keyword tags.
+**Filter people by their company's attributes in a single call** — `--employees`, `--hiring-for`, `--industry`, `--revenue`, `--funding`, `--total-funding`, and `--company-location` all apply to the person's employer. Prefer this over a two-step "search companies → pipe domains into `--domain`" pipeline:
+
+```bash
+# CTOs at 51–200 person companies that are currently hiring software engineers
+apollo people search --title CTO --employees "51,200" --hiring-for "Software Engineer"
+```
+
+**More search filters:** `--include-similar-titles` (fuzzy title match), `--email-status verified`, `--keyword-tags` (free-text company keywords), `--organization-ids`, `--using-all-technology` / `--not-using-technology` (vs the any-of `--technology`), and company hiring filters `--job-locations`, `--num-jobs "min,max"`, `--job-posted "min,max"`.
+
+> Note: `people search --industry` expects Apollo industry **tag IDs** (e.g. `5567cd4773696439b10b0000`), not free-text names like `"artificial intelligence"`. Passing free text returns HTTP 422. Use `--keyword-tags` or `companies search --industry` for free-text keyword tags.
 
 **Enrich a person (provide at least one identifier):**
 
 ```bash
 apollo people enrich --email jane@acme.com
 apollo people enrich --linkedin https://linkedin.com/in/janedoe
-apollo people enrich --first-name Jane --last-name Doe --company acme.com
-apollo people enrich --name "Jane Doe" --company acme.com
+apollo people enrich --first-name Jane --last-name Doe --company "Acme"
+apollo people enrich --name "Jane Doe" --domain acme.com --reveal-personal-emails
 ```
 
-**Bulk enrich multiple people by email:**
+Identifiers: `--email`, `--hashed-email`, `--linkedin`, `--name`/`--first-name`+`--last-name`, plus `--company` (name) and/or `--domain`. Add `--reveal-personal-emails` to surface personal emails (consumes credits).
+
+**Bulk enrich multiple people** — by email, or by full identifier records via a JSON file:
 
 ```bash
 apollo people bulk-enrich --emails jane@acme.com john@acme.com
+# people.json: [{ "name": "Jane Doe", "domain": "acme.com" }, { "email": "x@y.com" }]
+apollo people bulk-enrich --file people.json --reveal-personal-emails
 ```
 
 **Request an email address by Apollo person ID:**
@@ -76,6 +89,8 @@ apollo companies search --industry SaaS --employees "11,50" --location "United S
 apollo companies search --technology react --not-location China --per-page 25
 apollo companies search --funding "1000000,10000000"
 ```
+
+Also: `--name`, `--domains`, `--organization-ids`, `--funding-date "min,max"` (ISO dates), and hiring filters `--job-locations`, `--num-jobs "min,max"`, `--job-posted "min,max"`.
 
 **Enrich a company by domain or name:**
 

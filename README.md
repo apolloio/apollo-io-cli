@@ -83,22 +83,43 @@ Search Apollo's database for people.
 apollo people search --title "VP Engineering" --city "San Francisco"
 apollo people search --title "CTO" --seniority c_suite --domain stripe.com
 apollo people search --department engineering --technology react --per-page 25
+
+# Company-attribute filters apply to the person's employer — combine them to
+# target people by title AND their company's size, hiring activity, etc. in one call:
+apollo people search --title CTO --employees "51,200" --hiring-for "Software Engineer"
 ```
 
 | Option | Description |
 |---|---|
 | `-q, --query` | Name or keyword query |
 | `--title` | Job title(s) |
-| `--city` | Location(s) (city, state, country) |
+| `--include-similar-titles` | Also match titles similar to `--title` (fuzzy instead of strict) |
+| `--city` | Person location(s) (city, state, country) |
 | `--seniority` | Seniority level(s): `manager` `director` `vp` `c_suite` etc. |
 | `--department` | Department(s): `engineering` `sales` `marketing` etc. |
-| `--technology` | Technology UIDs the person's company uses |
+| `--email-status` | Contact email status(es): `verified` `unverified` etc. |
+| `--technology` | Technology UIDs the person's company uses (any of) |
+| `--using-all-technology` | Technology UIDs the company uses (all of) |
+| `--not-using-technology` | Technology UIDs the company does NOT use |
 | `--domain` | Company domain(s) |
 | `--industry` | Industry tag ID(s) — opaque IDs like `5567cd4773696439b10b0000`, not free-text names |
+| `--keyword-tags` | Free-text keyword tag(s) for the person's company |
+| `--organization-ids` | Apollo organization ID(s) to restrict to |
+| `--company-location` | Person's company HQ location(s) |
+| `--employees` | Company employee range, e.g. `"11,50"` or `"51,200"` |
+| `--hiring-for` | People whose company is currently hiring for job title(s) |
+| `--job-locations` | Locations the person's company is hiring in |
+| `--num-jobs` | Number of open jobs at the company as `"min,max"` |
+| `--job-posted` | Job-posting date range as `"min,max"` (ISO dates) |
+| `--revenue` | Company revenue range as `"min,max"` |
+| `--funding` | Company latest funding amount as `"min,max"` |
+| `--total-funding` | Company total funding raised as `"min,max"` |
 | `--per-page` | Results per page (default: 10) |
 | `--page` | Page number (default: 1) |
 
 > Note: `--industry` expects Apollo industry tag IDs, not free-text names. Free-text values return HTTP 422.
+>
+> Tip: the company-attribute filters (`--employees`, `--hiring-for`, `--industry`, `--revenue`, `--funding`, `--total-funding`, `--company-location`) all run against the person's employer, so you no longer need a two-step "search companies → pipe domains into `--domain`" pipeline for those criteria — do it in a single `people search` call.
 
 #### `enrich`
 
@@ -107,26 +128,36 @@ Enrich a single person's profile. Provide at least one identifier.
 ```bash
 apollo people enrich --email jane@acme.com
 apollo people enrich --linkedin https://linkedin.com/in/janedoe
-apollo people enrich --first-name Jane --last-name Doe --company acme.com
-apollo people enrich --name "Jane Doe" --company acme.com
+apollo people enrich --first-name Jane --last-name Doe --company "Acme"
+apollo people enrich --name "Jane Doe" --domain acme.com --reveal-personal-emails
 ```
 
 | Option | Description |
 |---|---|
 | `--email` | Email address |
+| `--hashed-email` | MD5 or SHA-256 hashed email address |
 | `--linkedin` | LinkedIn profile URL |
 | `--first-name` | First name (use with `--last-name` and `--company`) |
 | `--last-name` | Last name (use with `--first-name` and `--company`) |
 | `--name` | Full name (use with `--company`) |
-| `--company` | Company domain |
+| `--company` | Company name (use with `--name` or `--first-name`/`--last-name`) |
+| `--domain` | Company domain (e.g. `acme.com`) |
+| `--reveal-personal-emails` | Reveal personal emails (consumes credits) |
 
 #### `bulk-enrich`
 
-Enrich multiple people by email in a single request.
+Enrich multiple people in a single request — by email, or by full identifier records via a JSON file.
 
 ```bash
 apollo people bulk-enrich --emails jane@acme.com john@acme.com
+apollo people bulk-enrich --file people.json --reveal-personal-emails
 ```
+
+| Option | Description |
+|---|---|
+| `--emails` | Email addresses to enrich |
+| `--file` | Path to a JSON file with an array of match records (or `{ "details": [...] }`) — each record may include `first_name`, `last_name`, `name`, `email`, `domain`, `organization_name`, `id`, `linkedin_url` |
+| `--reveal-personal-emails` | Reveal personal emails (consumes credits) |
 
 #### `email`
 
@@ -163,6 +194,9 @@ apollo companies search --funding "1000000,10000000"
 | Option | Description |
 |---|---|
 | `-q, --query` | Keyword query |
+| `--name` | Filter by organization name |
+| `--domains` | Company domain(s) to filter by |
+| `--organization-ids` | Apollo organization ID(s) to restrict to |
 | `--location` | Location(s) to include |
 | `--not-location` | Location(s) to exclude |
 | `--employees` | Employee range as `"min,max"` (e.g. `"11,50"`) |
@@ -170,8 +204,12 @@ apollo companies search --funding "1000000,10000000"
 | `--technology` | Technology UIDs in use |
 | `--revenue` | Revenue range as `"min,max"` |
 | `--funding` | Latest funding amount as `"min,max"` |
+| `--funding-date` | Latest funding date range as `"min,max"` (ISO dates) |
 | `--total-funding` | Total funding raised as `"min,max"` |
 | `--hiring-for` | Currently hiring for job title(s) |
+| `--job-locations` | Locations the company is hiring in |
+| `--num-jobs` | Number of open jobs as `"min,max"` |
+| `--job-posted` | Job-posting date range as `"min,max"` (ISO dates) |
 | `--per-page` | Results per page (default: 10) |
 | `--page` | Page number (default: 1) |
 
