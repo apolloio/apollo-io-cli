@@ -1,5 +1,5 @@
 import type { Command } from 'commander';
-import { apolloRequest } from '../api.js';
+import { apolloGet, apolloRequest } from '../api.js';
 import { print, FORMAT_OPTION } from '../output.js';
 import { parsePageOptions } from '../utils.js';
 
@@ -38,8 +38,85 @@ interface SequenceRemoveContactsOptions {
   format?: string;
 }
 
+interface SequenceCreateOptions {
+  name: string;
+  stepsFile: string;
+  scheduleId?: string;
+  permissions?: string;
+  exactDaytime?: boolean;
+  active?: boolean;
+  label?: string[];
+  format?: string;
+}
+
+interface SequenceUpdateOptions {
+  id: string;
+  stepsFile: string;
+  name?: string;
+  scheduleId?: string;
+  permissions?: string;
+  exactDaytime?: boolean;
+  active?: boolean;
+  inactive?: boolean;
+  label?: string[];
+  format?: string;
+}
+
+interface SequenceApproveOptions {
+  id: string;
+  format?: string;
+}
+
+interface SequenceSchedulesOptions {
+  format?: string;
+}
+
+// Reads emailer_steps from a JSON file (an array, or { "emailer_steps": [...] }).
+async function readSteps(path: string): Promise<unknown[]> {
+  const fs = await import('node:fs/promises');
+  const parsed: unknown = JSON.parse(await fs.readFile(path, 'utf8'));
+  const arr = Array.isArray(parsed)
+    ? parsed
+    : (parsed as { emailer_steps?: unknown }).emailer_steps;
+  if (!Array.isArray(arr)) {
+    console.error('Error: steps file must contain a JSON array (or { "emailer_steps": [...] })');
+    process.exit(1);
+  }
+  return arr;
+}
+
+// Maps sequence create options + parsed steps to the /sequences request body. Pure.
+export function buildSequenceCreateBody(
+  opts: SequenceCreateOptions,
+  steps: unknown[],
+): Record<string, unknown> {
+  const body: Record<string, unknown> = { name: opts.name, emailer_steps: steps };
+  if (opts.permissions) body.permissions = opts.permissions;
+  if (opts.scheduleId) body.emailer_schedule_id = opts.scheduleId;
+  if (opts.exactDaytime) body.sequence_by_exact_daytime = true;
+  if (opts.active) body.active = true;
+  if (opts.label) body.label_names = opts.label;
+  return body;
+}
+
+// Maps sequence update options + parsed steps to the /sequences/:id request body. Pure.
+export function buildSequenceUpdateBody(
+  opts: SequenceUpdateOptions,
+  steps: unknown[],
+): Record<string, unknown> {
+  const body: Record<string, unknown> = { emailer_steps: steps };
+  if (opts.name) body.name = opts.name;
+  if (opts.permissions) body.permissions = opts.permissions;
+  if (opts.scheduleId) body.emailer_schedule_id = opts.scheduleId;
+  if (opts.exactDaytime) body.sequence_by_exact_daytime = true;
+  if (opts.active) body.active = true;
+  if (opts.inactive) body.active = false;
+  if (opts.label) body.label_names = opts.label;
+  return body;
+}
+
 export function registerSequences(program: Command): void {
-  const seq = program.command('sequences').description('Search sequences and add or remove contacts');
+  const seq = program.command('sequences').description('Manage sequences: search, create/update, approve, schedules, and add/remove contacts');
 
   seq
     .command('search')
@@ -121,6 +198,65 @@ export function registerSequences(program: Command): void {
       };
       if (opts.reason) body.stop_reason = opts.reason;
       const data = await apolloRequest('/emailer_campaigns/remove_or_stop_contact_ids', body);
+      print(data, opts.format);
+    });
+
+  seq
+    .command('create')
+    .description('Create a sequence from a steps JSON file')
+    .requiredOption('--name <name>', 'Sequence name')
+    .requiredOption('--steps-file <path>', 'Path to JSON file with the ordered emailer_steps (array, or { "emailer_steps": [...] })')
+    .option('--schedule-id <id>', 'EmailerSchedule ID controlling send-time windows (see "sequences schedules")')
+    .option('--permissions <perm>', 'Who can use/view the sequence (defaults to team_can_use)')
+    .option('--exact-daytime', 'Each step has a fixed exact datetime (one-off campaign)')
+    .option('--active', 'Activate the sequence on creation (contacts added start sending)')
+    .option('--label <names...>', 'Label name(s) to apply to the sequence')
+    .option(...FORMAT_OPTION)
+    .action(async (opts: SequenceCreateOptions) => {
+      const steps = await readSteps(opts.stepsFile);
+      const data = await apolloRequest('/sequences', buildSequenceCreateBody(opts, steps));
+      print(data, opts.format);
+    });
+
+  seq
+    .command('update')
+    .description('Update a sequence (replaces its full set of steps)')
+    .requiredOption('--id <id>', 'Sequence ID')
+    .requiredOption('--steps-file <path>', 'Path to JSON file with the FULL ordered emailer_steps after the update')
+    .option('--name <name>', 'New sequence name')
+    .option('--schedule-id <id>', 'New EmailerSchedule ID')
+    .option('--permissions <perm>', 'New sharing permission')
+    .option('--exact-daytime', 'Switch to exact-datetime mode')
+    .option('--active', 'Activate the sequence as part of the update')
+    .option('--inactive', 'Deactivate the sequence as part of the update')
+    .option('--label <names...>', 'Replace the label set on the sequence')
+    .option(...FORMAT_OPTION)
+    .action(async (opts: SequenceUpdateOptions) => {
+      if (opts.active && opts.inactive) {
+        console.error('Error: pass only one of --active or --inactive');
+        process.exit(1);
+      }
+      const steps = await readSteps(opts.stepsFile);
+      const data = await apolloRequest(`/sequences/${opts.id}`, buildSequenceUpdateBody(opts, steps), 'PATCH');
+      print(data, opts.format);
+    });
+
+  seq
+    .command('approve')
+    .description('Approve a sequence pending review')
+    .requiredOption('--id <id>', 'Sequence (emailer_campaign) ID')
+    .option(...FORMAT_OPTION)
+    .action(async (opts: SequenceApproveOptions) => {
+      const data = await apolloRequest(`/emailer_campaigns/${opts.id}/approve`, {});
+      print(data, opts.format);
+    });
+
+  seq
+    .command('schedules')
+    .description('List sending schedules (for --schedule-id on create/update)')
+    .option(...FORMAT_OPTION)
+    .action(async (opts: SequenceSchedulesOptions) => {
+      const data = await apolloGet('/emailer_schedules');
       print(data, opts.format);
     });
 }

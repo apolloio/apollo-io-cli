@@ -320,10 +320,14 @@ apollo deals show --id <opportunity-id>
 
 ### `apollo sequences`
 
-Search sequences and enroll/remove contacts. **`add-contacts` sends real emails — confirm before running.**
+Create/update sequences, manage schedules, approve, and enroll/remove contacts. **`add-contacts` sends real emails — confirm before running.**
 
 ```bash
 apollo sequences search --query "welcome" --per-page 10
+apollo sequences schedules
+apollo sequences create --name "Q2 Outbound" --steps-file ./steps.json --schedule-id <schedule-id>
+apollo sequences update --id <seq-id> --steps-file ./steps.json --active
+apollo sequences approve --id <seq-id>
 apollo sequences add-contacts --id <seq-id> --from-email-account <email-account-id> --contact-id <contact-id>
 apollo sequences remove-contacts --contact-id <id> --sequence-id <seq-id> --mode remove
 ```
@@ -331,6 +335,10 @@ apollo sequences remove-contacts --contact-id <id> --sequence-id <seq-id> --mode
 | Subcommand | Notes |
 |---|---|
 | `search` | `-q/--query` matches sequence names; paging supported. |
+| `schedules` | Lists sending schedules; use a returned id as `--schedule-id` on create/update. |
+| `create` | Required: `--name`, `--steps-file` (JSON `emailer_steps`). Optional: `--schedule-id`, `--permissions`, `--exact-daytime`, `--active`, `--label`. |
+| `update` | Required: `--id`, `--steps-file` (the FULL step set after update). Optional: `--name`, `--schedule-id`, `--permissions`, `--exact-daytime`, `--active`/`--inactive`, `--label`. |
+| `approve` | `--id` required. Approves a sequence pending review. |
 | `add-contacts` | Required: `--id`, `--from-email-account`. Provide `--contact-id` or `--label`. Optional: `--from-email`, `--no-email`, `--unverified-email`, `--job-change`, `--active-in-other`, `--finished-in-other`, `--same-company`, `--without-ownership`, `--add-if-in-queue`, `--skip-verification`, `--status active|paused`, `--auto-unpause-at <iso>`. |
 | `remove-contacts` | `--contact-id`, `--sequence-id`, `--mode remove\|stop`, `--reason <text>`. |
 

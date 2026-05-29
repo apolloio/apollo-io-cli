@@ -38,3 +38,14 @@ APOLLO_LIVE_WRITES=1 APOLLO_TEST_TEAM=<id> npm run test:live
 # everything, including real email / sequence activation (throwaway team only)
 APOLLO_LIVE_WRITES=1 APOLLO_LIVE_DANGEROUS=1 APOLLO_TEST_TEAM=<id> npm run test:live
 ```
+
+### Fixtures for the sequence tests
+
+Sequences have no API delete path and `emailer_steps` is a complex structure, so the
+sequence write/side-effecting tests skip individually unless you supply fixtures:
+
+| Env var | Used by |
+|---|---|
+| `APOLLO_TEST_STEPS_FILE` | `sequences create` / `update` (path to an `emailer_steps` JSON file) |
+| `APOLLO_TEST_SEQUENCE_ID` | `sequences update` / `approve` |
+| `APOLLO_TEST_EMAIL_ACCOUNT_ID` + `APOLLO_TEST_CONTACT_ID` | `sequences add-contacts` (real email) |
