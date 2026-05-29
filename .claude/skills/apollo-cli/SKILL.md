@@ -190,6 +190,17 @@ apollo sequences add-contacts --id <seq_id> --from-email-account <id> --label "Q
 apollo sequences remove-contacts --contact-id <id> --sequence-id <seq_id> --mode remove
 ```
 
+**Build and manage sequences:**
+
+```bash
+apollo sequences schedules                       # list send schedules -> emailer_schedule_id
+apollo sequences create --name "Q2 Outbound" --steps-file ./steps.json --schedule-id <id>
+apollo sequences update --id <seq_id> --steps-file ./steps.json --active   # --steps-file is the FULL step set
+apollo sequences approve --id <seq_id>           # approve a sequence pending review
+```
+
+`create`/`update` take the ordered `emailer_steps` as a JSON file (`--steps-file`); `create` requires `--name`, `update` requires `--id`. Activation: `create --active`, or `update --active`/`--inactive`. Get `--schedule-id` from `sequences schedules`. Activating + approving means contacts can start receiving real email — confirm with the user first.
+
 ---
 
 ### Phone calls

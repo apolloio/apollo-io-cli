@@ -53,6 +53,15 @@ describe.skipIf(!hasCredentials())('live: read-only', () => {
     expect(isRecord(res.json) && isRecord(res.json.organization)).toBeTruthy();
   });
 
+  it('sequences schedules is wired (succeeds, or 403 until mcp_sequences is GA)', async () => {
+    // The sequence-lifecycle tools are still behind Apollo's mcp_sequences rollout, so a
+    // token without that scope gets a clean 403 API_INACCESSIBLE. Either outcome proves the
+    // command is wired correctly — a CLI/path bug would look different.
+    const res = await runCli(['sequences', 'schedules']);
+    const notYetGa = res.code !== 0 && /API_INACCESSIBLE|not accessible/.test(res.stderr);
+    expect(res.code === 0 || notYetGa, res.stderr).toBe(true);
+  });
+
   it('email-accounts list succeeds', async () => {
     const res = await runCli(['email-accounts', 'list']);
     expect(res.code, res.stderr).toBe(0);
