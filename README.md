@@ -1,6 +1,6 @@
 # apollo-io-cli
 
-A command-line interface for the [Apollo.io API](https://apolloio.github.io/apollo-api-docs/). Search and enrich people and companies, find job postings, surface news, manage CRM contacts/accounts/deals, drive sequences, log calls and tasks, and pull analytics — all from your terminal, pipeable with `jq` and switchable to CSV / YAML / JSONL / table output.
+A command-line interface for the [Apollo.io API](https://docs.apollo.io/). Search and enrich people and companies, find job postings, surface news, manage CRM contacts/accounts/deals, drive sequences, log calls and tasks, and pull analytics — all from your terminal, pipeable with `jq` and switchable to CSV / YAML / JSONL / table output.
 
 <img width="1908" height="2294" alt="image" src="https://github.com/user-attachments/assets/eb7ebc43-1c64-466d-8959-e9c6e185433a" />
 
@@ -538,4 +538,3 @@ apollo companies jobs --id abc123 \
 apollo companies search --industry SaaS --funding "5000000,20000000" --location "United States" \
   | jq '.accounts[].primary_domain'
 ```
-
