@@ -5,6 +5,12 @@ import pkg from '../package.json' with { type: 'json' };
 const API_HOST = 'https://api.apollo.io';
 const BASE_URL = `${API_HOST}/api/v1`;
 
+let extraHeaders: Record<string, string> = {};
+
+export function setCustomHeaders(headers: Record<string, string>): void {
+  extraHeaders = headers;
+}
+
 // Paths starting with "//" are mounted off the host root (e.g. //analytics/api/v1/...);
 // regular paths resolve under /api/v1.
 function resolvePath(path: string): string {
@@ -44,6 +50,7 @@ export async function apolloGet<T = ApolloJson>(path: string, params: QueryParam
       'Cache-Control': 'no-cache',
       'User-Agent': `apollo-io-cli/${pkg.version}`,
       'X-Apollo-Source': 'apollo-cli',
+      ...extraHeaders,
       ...await getAuthHeaders(),
     },
   });
@@ -67,6 +74,7 @@ export async function apolloRequest<T = ApolloJson>(
       'Cache-Control': 'no-cache',
       'User-Agent': `apollo-io-cli/${pkg.version}`,
       'X-Apollo-Source': 'apollo-cli',
+      ...extraHeaders,
       ...await getAuthHeaders(),
     },
     body: JSON.stringify(body),
