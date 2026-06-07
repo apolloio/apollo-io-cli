@@ -2,7 +2,7 @@ import { getValidCredentials } from './credentials.js';
 import type { ApolloJson } from './types.js';
 import pkg from '../package.json' with { type: 'json' };
 
-const API_HOST = 'https://api.apollo.io';
+const API_HOST = process.env.APOLLO_API_BASE_URL ?? 'https://api.apollo.io';
 const BASE_URL = `${API_HOST}/api/v1`;
 
 // Paths starting with "//" are mounted off the host root (e.g. //analytics/api/v1/...);
