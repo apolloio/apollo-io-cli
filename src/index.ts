@@ -38,7 +38,7 @@ program
         console.error(`Invalid --add-header value "${entry}": expected key:value`);
         process.exit(1);
       }
-      headers[entry.slice(0, colon).trim()] = entry.slice(colon + 1).trim();
+      headers[entry.slice(0, colon).trim().toLowerCase()] = entry.slice(colon + 1).trim();
     }
     setCustomHeaders(headers);
   });
