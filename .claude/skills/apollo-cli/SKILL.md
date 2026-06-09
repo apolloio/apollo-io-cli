@@ -288,6 +288,18 @@ Minimal payload (each metric needs `value`, `smart_datetime_reference`, and `sma
 
 ---
 
+## Global flags
+
+These flags are accepted by every command and must be placed before the subcommand:
+
+| Flag | Description |
+|---|---|
+| `--add-header <key:value>` | Inject a custom HTTP header into the request. Repeatable. Header names are normalized to lowercase. |
+
+```bash
+apollo --add-header x-request-id:abc123 people search --q-keywords "Jane"
+```
+
 ## Output formats
 
 Every subcommand accepts `-f, --format <format>`:

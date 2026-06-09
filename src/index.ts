@@ -2,6 +2,7 @@
 
 import { Command } from 'commander';
 import pkg from '../package.json' with { type: 'json' };
+import { setCustomHeaders } from './api.js';
 import { registerAuth } from './commands/auth.js';
 import { registerPeople } from './commands/people.js';
 import { registerCompanies } from './commands/companies.js';
@@ -22,7 +23,25 @@ const program = new Command();
 program
   .name('apollo')
   .description('CLI for the Apollo.io API')
-  .version(pkg.version);
+  .version(pkg.version)
+  .option(
+    '--add-header <header...>',
+    'Add custom request header(s) in key:value format (repeatable)',
+  )
+  .hook('preAction', (cmd) => {
+    const raw: string[] | undefined = cmd.opts().addHeader;
+    if (!raw?.length) return;
+    const headers: Record<string, string> = {};
+    for (const entry of raw) {
+      const colon = entry.indexOf(':');
+      if (colon < 1) {
+        console.error(`Invalid --add-header value "${entry}": expected key:value`);
+        process.exit(1);
+      }
+      headers[entry.slice(0, colon).trim().toLowerCase()] = entry.slice(colon + 1).trim();
+    }
+    setCustomHeaders(headers);
+  });
 
 registerAccounts(program);
 registerAnalytics(program);

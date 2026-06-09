@@ -5,6 +5,12 @@ import pkg from '../package.json' with { type: 'json' };
 const API_HOST = process.env.APOLLO_API_BASE_URL ?? 'https://api.apollo.io';
 const BASE_URL = `${API_HOST}/api/v1`;
 
+let extraHeaders: Record<string, string> = {};
+
+export function setCustomHeaders(headers: Record<string, string>): void {
+  extraHeaders = headers;
+}
+
 // Paths starting with "//" are mounted off the host root (e.g. //analytics/api/v1/...);
 // regular paths resolve under /api/v1.
 function resolvePath(path: string): string {
@@ -22,7 +28,7 @@ async function getAuthHeaders(): Promise<Record<string, string>> {
     console.error('Session expired. Run: apollo auth login');
     process.exit(1);
   }
-  return { 'Authorization': `Bearer ${creds.access_token}` };
+  return { 'authorization': `Bearer ${creds.access_token}` };
 }
 
 export type QueryParams = Record<string, string | number | boolean | string[] | number[] | undefined | null>;
@@ -41,9 +47,10 @@ export async function apolloGet<T = ApolloJson>(path: string, params: QueryParam
   const res = await fetch(url.toString(), {
     method: 'GET',
     headers: {
-      'Cache-Control': 'no-cache',
-      'User-Agent': `apollo-io-cli/${pkg.version}`,
-      'X-Apollo-Source': 'apollo-cli',
+      'cache-control': 'no-cache',
+      'user-agent': `apollo-io-cli/${pkg.version}`,
+      'x-apollo-source': 'apollo-cli',
+      ...extraHeaders,
       ...await getAuthHeaders(),
     },
   });
@@ -63,10 +70,11 @@ export async function apolloRequest<T = ApolloJson>(
   const res = await fetch(resolvePath(path), {
     method,
     headers: {
-      'Content-Type': 'application/json',
-      'Cache-Control': 'no-cache',
-      'User-Agent': `apollo-io-cli/${pkg.version}`,
-      'X-Apollo-Source': 'apollo-cli',
+      'content-type': 'application/json',
+      'cache-control': 'no-cache',
+      'user-agent': `apollo-io-cli/${pkg.version}`,
+      'x-apollo-source': 'apollo-cli',
+      ...extraHeaders,
       ...await getAuthHeaders(),
     },
     body: JSON.stringify(body),
