@@ -16,6 +16,7 @@ Or tap once then install by short name:
 
 ```bash
 brew tap apolloio/apollo-io-cli
+brew trust apolloio/apollo-io-cli
 brew install apollo-io-cli
 ```
 
