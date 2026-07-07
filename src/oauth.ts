@@ -3,7 +3,7 @@ import crypto from 'crypto';
 import { spawnSync } from 'child_process';
 import type { IncomingMessage, ServerResponse } from 'http';
 import type { OAuthLoginResult, OAuthTokenResponse } from './types.js';
-import { loadSavedClientId } from './credentials.js';
+import { loadSavedClientId, clearSavedClientId } from './credentials.js';
 
 const APOLLO_MCP_BASE = 'https://mcp.apollo.io';
 const REDIRECT_PORT = 3421;
@@ -29,6 +29,10 @@ function generatePKCE(): PKCE {
   const verifier = crypto.randomBytes(32).toString('base64url');
   const challenge = crypto.createHash('sha256').update(verifier).digest('base64url');
   return { verifier, challenge };
+}
+
+export function isInvalidClientError(message: string): boolean {
+  return /invalid_client|unknown client/i.test(message);
 }
 
 function isOAuthTokenResponse(value: unknown): value is OAuthTokenResponse {
@@ -115,8 +119,7 @@ function openBrowser(url: string): void {
   }
 }
 
-export async function oauthLogin(): Promise<OAuthLoginResult> {
-  const clientId = loadSavedClientId() ?? await registerClient();
+async function attemptLogin(clientId: string): Promise<OAuthLoginResult> {
   const { verifier, challenge } = generatePKCE();
   const state = crypto.randomBytes(16).toString('hex');
 
@@ -175,4 +178,20 @@ export async function oauthLogin(): Promise<OAuthLoginResult> {
 
     setTimeout(() => done(() => reject(new Error('Authorization timed out'))), TIMEOUT_MS);
   });
+}
+
+export async function oauthLogin(): Promise<OAuthLoginResult> {
+  const cachedClientId = loadSavedClientId();
+  const clientId = cachedClientId ?? await registerClient();
+
+  try {
+    return await attemptLogin(clientId);
+  } catch (err) {
+    const message = err instanceof Error ? err.message : String(err);
+    if (!cachedClientId || !isInvalidClientError(message)) throw err;
+
+    console.log('Cached client registration is no longer valid — re-registering...');
+    clearSavedClientId();
+    return attemptLogin(await registerClient());
+  }
 }

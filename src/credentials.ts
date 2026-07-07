@@ -1,7 +1,7 @@
 import { mkdirSync, writeFileSync, readFileSync, existsSync, unlinkSync } from 'fs';
 import { join, dirname } from 'path';
 import { homedir } from 'os';
-import { refreshAccessToken } from './oauth.js';
+import { refreshAccessToken, isInvalidClientError } from './oauth.js';
 import type { Credentials, OAuthTokenResponse } from './types.js';
 
 const TOKEN_EXPIRY_BUFFER_MS = 60 * 1000;
@@ -20,6 +20,10 @@ export function loadSavedClientId(): string | null {
   if (!existsSync(CLIENT_ID_PATH)) return null;
   const id = readFileSync(CLIENT_ID_PATH, 'utf8').trim();
   return id || null;
+}
+
+export function clearSavedClientId(): void {
+  if (existsSync(CLIENT_ID_PATH)) unlinkSync(CLIENT_ID_PATH);
 }
 
 function saveClientId(clientId: string): void {
@@ -76,7 +80,9 @@ export async function getValidCredentials(): Promise<Credentials | null> {
       expires_in: refreshed.expires_in,
     });
     return loadCredentials();
-  } catch {
+  } catch (err) {
+    const message = err instanceof Error ? err.message : String(err);
+    if (isInvalidClientError(message)) clearSavedClientId();
     console.error('Session expired. Run: apollo auth login');
     process.exit(1);
   }
