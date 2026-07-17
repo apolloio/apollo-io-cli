@@ -1,6 +1,6 @@
 # apollo-io-cli
 
-A command-line interface for the [Apollo.io API](https://docs.apollo.io/). Search and enrich people and companies, find job postings, surface news, manage CRM contacts/accounts/deals, drive sequences, log calls and tasks, and pull analytics — all from your terminal, pipeable with `jq` and switchable to CSV / YAML / JSONL / table output.
+A command-line interface for the [Apollo.io API](https://docs.apollo.io/). Search and enrich people and companies, find job postings, surface news, manage CRM contacts/accounts/deals, drive sequences, draft and send outreach emails, manage lists and custom fields, log calls and tasks, search conversations, and pull analytics — all from your terminal, pipeable with `jq` and switchable to CSV / YAML / JSONL / table output.
 
 <img width="1908" height="2294" alt="image" src="https://github.com/user-attachments/assets/eb7ebc43-1c64-466d-8959-e9c6e185433a" />
 
@@ -168,6 +168,14 @@ Request an email address for a person by their Apollo person ID.
 apollo people email --id abc123def456
 ```
 
+#### `get`
+
+Get complete person info by Apollo person ID.
+
+```bash
+apollo people get --id abc123def456
+```
+
 #### `employees`
 
 Find employees at a company.
@@ -233,7 +241,7 @@ apollo companies bulk-enrich --domains stripe.com acme.com notion.so
 
 #### `get`
 
-Get full details for a company by Apollo organization ID.
+Get complete organization info by Apollo organization ID (GETs `/api/v1/organizations/:id`).
 
 ```bash
 apollo companies get --id abc123def456
@@ -271,7 +279,13 @@ CRM contacts in your team's Apollo account.
 apollo contacts search --query "director" --per-page 25
 apollo contacts create --first-name Jane --last-name Doe --email jane@acme.com
 apollo contacts update --id <contact-id> --title "VP Sales"
+apollo contacts show --id <contact-id>
+apollo contacts deals --id <contact-id>
 apollo contacts bulk-create --file ./contacts.json
+apollo contacts bulk-update --ids <id1> <id2> --owner-id <user-id>
+apollo contacts update-stages --ids <id1> <id2> --stage-id <stage-id>
+apollo contacts update-owners --ids <id1> <id2> --owner-id <user-id>
+apollo contacts stages
 ```
 
 | Subcommand | Notes |
@@ -279,7 +293,13 @@ apollo contacts bulk-create --file ./contacts.json
 | `search` | `-q/--query`, `--sort-by`, `--sort-asc`, `--page`, `--per-page` |
 | `create` | Fields: `--first-name`, `--last-name`, `--email`, `--organization`, `--title`, `--account-id`, `--website-url`, `--address`, `--direct-phone`, `--corporate-phone`, `--mobile-phone`, `--home-phone`, `--other-phone`, `--label`. `--dedupe` enables Apollo dedup. |
 | `update` | Same fields as `create`; `--id` required. PATCHes `/api/v1/contacts/:id`. |
+| `show` | View one contact; `--id` required. |
+| `deals` | List deals (opportunities) associated with a contact; `--id` required. |
 | `bulk-create` | `--file <path>` to a JSON array (or `{ "contacts": [...] }`). |
+| `bulk-update` | Same values for many: `--ids` + `--owner-id`/`--account-id`. Per-contact values: `--file <path>` to a JSON array of objects with `id` (or `{ "contact_attributes": [...] }`). |
+| `update-stages` | Move contacts to a stage: `--ids`, `--stage-id` (from `contacts stages`). |
+| `update-owners` | Reassign owner: `--ids`, `--owner-id`. |
+| `stages` | List contact stages and their IDs. |
 
 ---
 
@@ -290,14 +310,24 @@ CRM accounts (companies your team has explicitly added).
 ```bash
 apollo accounts create --name "Acme Co" --domain acme.com
 apollo accounts update --id <account-id> --phone 555-303-1234
+apollo accounts search --query "acme" --per-page 25
+apollo accounts show --id <account-id>
 apollo accounts bulk-create --file ./accounts.json
+apollo accounts bulk-update --ids <id1> <id2> --stage-id <stage-id>
+apollo accounts update-owners --ids <id1> <id2> --owner-id <user-id>
+apollo accounts stages
 ```
 
 | Subcommand | Notes |
 |---|---|
 | `create` | `--name`, `--domain`, `--phone`, `--address` |
 | `update` | Same fields; `--id` required. PATCHes `/api/v1/accounts/:id`. |
+| `search` | `-q/--query` (matches account names), `--stage-ids`, `--label-ids`, `--sort-by`, `--sort-asc`, paging. |
+| `show` | View one account; `--id` required. |
 | `bulk-create` | `--file <path>` to a JSON array (or `{ "accounts": [...] }`). |
+| `bulk-update` | Same values for many: `--ids` + `--name`/`--owner-id`/`--stage-id`. Per-account values: `--file <path>` to a JSON array of objects with `id` (or `{ "account_attributes": [...] }`). |
+| `update-owners` | Reassign owner: `--ids`, `--owner-id`. |
+| `stages` | List account stages and their IDs. |
 
 ---
 
@@ -309,6 +339,8 @@ Opportunities (deals) in your Apollo CRM.
 apollo deals create --name "Acme - Q2 Renewal" --amount 50000 --currency USD --account-id <id>
 apollo deals search --account-id <id> --per-page 25
 apollo deals show --id <opportunity-id>
+apollo deals update --id <opportunity-id> --stage-id <stage-id> --amount 75000
+apollo deals stages
 ```
 
 | Subcommand | Notes |
@@ -316,6 +348,8 @@ apollo deals show --id <opportunity-id>
 | `create` | `--name` required. Optional: `--owner-id`, `--account-id`, `--amount`, `--currency`, `--stage-id`, `--pipeline-id`, `--close-date` (YYYY-MM-DD), `--description`. |
 | `search` | `-q/--query`, `--stage-id`, `--pipeline-id`, `--account-id`, `--owner-id`, `--sort-by`, `--sort-asc`, paging. |
 | `show` | GETs `/api/v1/opportunities/:id`. |
+| `update` | `--id` required. Optional: `--name`, `--owner-id`, `--amount`, `--stage-id`, `--close-date`. PATCHes `/api/v1/opportunities/:id`. |
+| `stages` | List deal stages and their IDs. |
 
 ---
 
@@ -340,6 +374,8 @@ apollo sequences remove-contacts --contact-id <id> --sequence-id <seq-id> --mode
 | `create` | Required: `--name`, `--steps-file` (JSON `emailer_steps`). Optional: `--schedule-id`, `--permissions`, `--exact-daytime`, `--active`, `--label`. |
 | `update` | Required: `--id`, `--steps-file` (the FULL step set after update). Optional: `--name`, `--schedule-id`, `--permissions`, `--exact-daytime`, `--active`/`--inactive`, `--label`. |
 | `approve` | `--id` required. Approves a sequence pending review. |
+| `abort` | `--id` required. Deactivates an active sequence (stops sending). |
+| `archive` | `--id` required. Archives a sequence. |
 | `add-contacts` | Required: `--id`, `--from-email-account`. Provide `--contact-id` or `--label`. Optional: `--from-email`, `--no-email`, `--unverified-email`, `--job-change`, `--active-in-other`, `--finished-in-other`, `--same-company`, `--without-ownership`, `--add-if-in-queue`, `--skip-verification`, `--status active|paused`, `--auto-unpause-at <iso>`. |
 | `remove-contacts` | `--contact-id`, `--sequence-id`, `--mode remove\|stop`, `--reason <text>`. |
 
@@ -371,6 +407,10 @@ Action items / call/email/LinkedIn tasks. Apollo requires each task be tied to a
 apollo tasks create --user-id <user-id> --type action_item --title "Follow up" --priority medium --contact-id <id>
 apollo tasks bulk-create --file ./tasks.json
 apollo tasks search --priority high --per-page 25
+apollo tasks show --id <task-id>
+apollo tasks update --id <task-id> --priority high --due-at 2026-08-01T09:00:00Z
+apollo tasks complete --id <task-id> --note "Called and connected"
+apollo tasks skip --id <task-id> --note "No longer relevant"
 ```
 
 | Subcommand | Notes |
@@ -378,6 +418,10 @@ apollo tasks search --priority high --per-page 25
 | `create` | Required: `--user-id`, `--type`, and one of `--contact-id`/`--account-id`/`--opportunity-id`. Optional: `--creator-id`, `--title`, `--note`, `--priority`, `--status`, `--due-at`. |
 | `bulk-create` | `--file <path>` JSON array (or `{ "tasks_attributes": [...] }`). |
 | `search` | `-q/--query`, `--user-id`, `--contact-id`, `--account-id`, `--opportunity-id`, `--priority`, `--sort-by`, paging. GETs `/api/v1/tasks/search`. |
+| `show` | View one task; `--id` required. |
+| `update` | `--id` required. Optional: `--user-id`, `--creator-id`, `--contact-id`, `--type`, `--title`, `--note`, `--priority`, `--status`, `--due-at`. PATCHes `/api/v1/tasks/:id`. |
+| `complete` | Mark a task completed; `--id` required, optional `--note`. |
+| `skip` | Skip a task; `--id` required, optional `--note`, `--sync-index` (reindex synchronously). |
 
 ---
 
@@ -407,13 +451,117 @@ Lists the team's linked sending inboxes. Use the returned `id` as `--from-email-
 
 ---
 
+### `apollo emails`
+
+One-off outreach emails (drafts and sends outside sequences). **`send` delivers a real email — confirm before running.**
+
+```bash
+apollo emails draft --contact-id <id> --subject "Quick question" --body-html "<p>Hi there…</p>"
+apollo emails send --id <emailer-message-id>
+apollo emails status --id <emailer-message-id>
+apollo emails stats --id <emailer-message-id>
+apollo emails search --query "renewal" --stats delivered opened --per-page 25
+```
+
+| Subcommand | Notes |
+|---|---|
+| `draft` | Requires `--contact-id` or `--reply-to <message-id>`. Optional: `--subject`, `--body-html`/`--body-file`, `--template-id`, `--task-id`, `--tracking`, `--attachment-ids`, `--recipients-file` (JSON array of `{ email, contact_id, recipient_type_cd }`). Creates the draft only. |
+| `send` | Sends a drafted email immediately; `--id` required. |
+| `status` | Check send status; `--id` required. |
+| `stats` | Open/click/reply activity for an email; `--id` required. |
+| `search` | `-q/--query`, `--user-ids`, `--stats`, `--reply-classes`, `--email-account-id`, `--sequence-ids`, `--not-sequence-ids`, `--date-range-mode`, `--date-from`/`--date-to`, paging. |
+
+---
+
+### `apollo labels`
+
+Lists (labels) of contacts or accounts.
+
+```bash
+apollo labels list
+apollo labels create --name "Conference 2026 - Maui" --modality contacts
+apollo labels update --id <label-id> --name "Conference 2026 - Maui (West)"
+apollo labels add --ids <contact-id1> <contact-id2> --names "Conference 2026 - Maui" --modality contacts
+apollo labels remove --ids <contact-id1> --names "Conference 2026 - Maui" --modality contacts
+```
+
+| Subcommand | Notes |
+|---|---|
+| `list` | All lists in the team's account. |
+| `create` | `--name`, `--modality contacts\|accounts`; `--book-of-business` for account lists. |
+| `update` | Rename by `--id`; `--name` required. |
+| `add` / `remove` | `--ids`, `--names`, `--modality` required. Unknown list names are created on `add`. `--async` returns a progress job for large batches. |
+
+---
+
+### `apollo fields`
+
+```bash
+apollo fields list
+apollo fields create --label "Renewal Date" --modality contact --type date
+apollo fields custom
+```
+
+| Subcommand | Notes |
+|---|---|
+| `list` | All fields; optional `--source`. |
+| `create` | `--label`, `--modality contact\|account\|opportunity`, `--type string\|textarea\|number\|date\|datetime\|boolean`; optional `--max-length`. |
+| `custom` | All custom (typed) fields — returns the field IDs used in `typed_custom_fields` payloads. |
+
+---
+
+### `apollo notes`
+
+```bash
+apollo notes list --contact-id <id>
+apollo notes list --account-id <id> --limit 50 --sort-direction desc
+```
+
+Filters: `--contact-id`, `--account-id`, `--opportunity-id`, `--calendar-event-id`, `--conversation-id`, `--conversation-ids`, `--contact-ids`, `--start-date`, `--sort-by`, `--sort-direction`, `--skip`, `--limit`.
+
+---
+
+### `apollo conversations`
+
+Recorded calls and meetings (Conversation Intelligence).
+
+```bash
+apollo conversations search --type phone_call --date-from 2026-01-01T00:00:00Z --limit 25
+apollo conversations show --id <conversation-id>
+apollo conversations export --start 2026-01-01T00:00:00Z --end 2026-03-31T23:59:59Z --email you@team.com
+apollo conversations export-status --id <export-id>
+```
+
+| Subcommand | Notes |
+|---|---|
+| `search` | `--type video_conference\|phone_call`, `--account-id`, `--contact-ids`, `--tag-ids`, `--tracker-ids`, `--organization-ids`, `--date-from`/`--date-to` (ISO, GMT), `--sort-by`, `--limit`, `--page`. |
+| `show` | Conversation details; `--id` required. |
+| `export` | Starts an export; `--start`, `--end`, `--email` required. |
+| `export-status` | Poll an export job; `--id` required. |
+
+---
+
+### `apollo webhooks`
+
+```bash
+apollo webhooks result --request-id <id>
+```
+
+Polls the stored result of an asynchronous (webhook-based) request, e.g. async bulk enrichment.
+
+---
+
 ### `apollo usage`
 
 ```bash
 apollo usage credits
+apollo usage api
 ```
 
-Returns `credit_usage_stats` for the authenticated team (lead / direct-dial / export / conversation / AI / power-up credits with limit/consumed/left_over).
+| Subcommand | Notes |
+|---|---|
+| `credits` | Returns `credit_usage_stats` for the authenticated team (lead / direct-dial / export / conversation / AI / power-up credits with limit/consumed/left_over). |
+| `api` | Returns per-endpoint API usage stats and rate limits. |
 
 ---
 

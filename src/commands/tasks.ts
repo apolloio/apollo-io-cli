@@ -23,6 +23,38 @@ interface TaskBulkCreateOptions {
   format?: string;
 }
 
+interface TaskShowOptions {
+  id: string;
+  format?: string;
+}
+
+interface TaskUpdateOptions {
+  id: string;
+  userId?: string;
+  creatorId?: string;
+  contactId?: string;
+  type?: string;
+  title?: string;
+  note?: string;
+  priority?: string;
+  status?: string;
+  dueAt?: string;
+  format?: string;
+}
+
+interface TaskCompleteOptions {
+  id: string;
+  note?: string;
+  format?: string;
+}
+
+interface TaskSkipOptions {
+  id: string;
+  note?: string;
+  syncIndex?: boolean;
+  format?: string;
+}
+
 interface TaskSearchOptions {
   query?: string;
   userId?: string;
@@ -51,8 +83,20 @@ const TASK_OPT_TO_API: Array<[keyof TaskCreateOptions, string]> = [
   ['opportunityId', 'opportunity_id'],
 ];
 
+const TASK_UPDATE_FIELDS: Array<[keyof Omit<TaskUpdateOptions, 'id' | 'format'>, string]> = [
+  ['userId', 'user_id'],
+  ['creatorId', 'creator_id'],
+  ['contactId', 'contact_id'],
+  ['type', 'type'],
+  ['title', 'title'],
+  ['note', 'note'],
+  ['priority', 'priority'],
+  ['status', 'status'],
+  ['dueAt', 'due_at'],
+];
+
 export function registerTasks(program: Command): void {
-  const tasks = program.command('tasks').description('Create, search, and bulk-create tasks');
+  const tasks = program.command('tasks').description('Create, search, update, complete, and skip tasks');
 
   tasks
     .command('create')
@@ -124,6 +168,68 @@ export function registerTasks(program: Command): void {
       if (opts.sortBy) body.sort_by_field = opts.sortBy;
       if (opts.sortAsc) body.sort_ascending = true;
       const data = await apolloGet('/tasks/search', body);
+      print(data, opts.format);
+    });
+
+  tasks
+    .command('show')
+    .description('View a single task by Apollo task ID')
+    .requiredOption('--id <id>', 'Apollo task ID')
+    .option(...FORMAT_OPTION)
+    .action(async (opts: TaskShowOptions) => {
+      const data = await apolloGet(`/tasks/${opts.id}`);
+      print(data, opts.format);
+    });
+
+  tasks
+    .command('update')
+    .description('Update an existing task by Apollo task ID')
+    .requiredOption('--id <id>', 'Apollo task ID')
+    .option('--user-id <id>', 'Reassign to this Apollo user ID (scheduled tasks only)')
+    .option('--creator-id <id>', 'Creator user ID (scheduled tasks only)')
+    .option('--contact-id <id>', 'Associated contact')
+    .option('--type <type>', 'Task type (e.g. action_item, call, outreach_manual_email)')
+    .option('--title <title>', 'Short title')
+    .option('--note <text>', 'Free-form note/body')
+    .option('--priority <priority>', 'low, medium, or high')
+    .option('--status <status>', 'e.g. scheduled, completed')
+    .option('--due-at <iso>', 'Due ISO 8601 timestamp')
+    .option(...FORMAT_OPTION)
+    .action(async (opts: TaskUpdateOptions) => {
+      const body: Record<string, unknown> = {};
+      for (const [optKey, apiKey] of TASK_UPDATE_FIELDS) {
+        const value = opts[optKey];
+        if (value !== undefined) body[apiKey] = value;
+      }
+      const data = await apolloRequest(`/tasks/${opts.id}`, body, 'PATCH');
+      print(data, opts.format);
+    });
+
+  tasks
+    .command('complete')
+    .description('Mark a task as completed')
+    .requiredOption('--id <id>', 'Apollo task ID')
+    .option('--note <text>', 'Optional note to record on completion')
+    .option(...FORMAT_OPTION)
+    .action(async (opts: TaskCompleteOptions) => {
+      const body: Record<string, unknown> = {};
+      if (opts.note) body.note = opts.note;
+      const data = await apolloRequest(`/tasks/${opts.id}/complete`, body);
+      print(data, opts.format);
+    });
+
+  tasks
+    .command('skip')
+    .description('Skip a task')
+    .requiredOption('--id <id>', 'Apollo task ID')
+    .option('--note <text>', 'Optional note to record when skipping')
+    .option('--sync-index', 'Reindex synchronously so the change is immediately searchable')
+    .option(...FORMAT_OPTION)
+    .action(async (opts: TaskSkipOptions) => {
+      const body: Record<string, unknown> = {};
+      if (opts.note) body.note = opts.note;
+      if (opts.syncIndex) body.on_task_page = true;
+      const data = await apolloRequest(`/tasks/${opts.id}/skip`, body);
       print(data, opts.format);
     });
 }

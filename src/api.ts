@@ -35,7 +35,7 @@ export type QueryParams = Record<string, string | number | boolean | string[] | 
 
 export type HttpMethod = 'POST' | 'PATCH' | 'PUT' | 'DELETE';
 
-export async function apolloGet<T = ApolloJson>(path: string, params: QueryParams = {}): Promise<T> {
+function buildUrl(path: string, params: QueryParams): URL {
   const url = new URL(resolvePath(path));
   for (const [key, value] of Object.entries(params)) {
     if (Array.isArray(value)) {
@@ -44,6 +44,11 @@ export async function apolloGet<T = ApolloJson>(path: string, params: QueryParam
       url.searchParams.set(key, String(value));
     }
   }
+  return url;
+}
+
+export async function apolloGet<T = ApolloJson>(path: string, params: QueryParams = {}): Promise<T> {
+  const url = buildUrl(path, params);
   const res = await fetch(url.toString(), {
     method: 'GET',
     headers: {
@@ -66,8 +71,9 @@ export async function apolloRequest<T = ApolloJson>(
   path: string,
   body: Record<string, unknown> = {},
   method: HttpMethod = 'POST',
+  params: QueryParams = {},
 ): Promise<T> {
-  const res = await fetch(resolvePath(path), {
+  const res = await fetch(buildUrl(path, params).toString(), {
     method,
     headers: {
       'content-type': 'application/json',

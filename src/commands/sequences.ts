@@ -252,6 +252,26 @@ export function registerSequences(program: Command): void {
     });
 
   seq
+    .command('abort')
+    .description('Deactivate an active sequence (stops sending)')
+    .requiredOption('--id <id>', 'Sequence (emailer_campaign) ID')
+    .option(...FORMAT_OPTION)
+    .action(async (opts: SequenceApproveOptions) => {
+      const data = await apolloRequest(`/emailer_campaigns/${opts.id}/abort`, {});
+      print(data, opts.format);
+    });
+
+  seq
+    .command('archive')
+    .description('Archive a sequence')
+    .requiredOption('--id <id>', 'Sequence (emailer_campaign) ID')
+    .option(...FORMAT_OPTION)
+    .action(async (opts: SequenceApproveOptions) => {
+      const data = await apolloRequest(`/emailer_campaigns/${opts.id}/archive`, {});
+      print(data, opts.format);
+    });
+
+  seq
     .command('schedules')
     .description('List sending schedules (for --schedule-id on create/update)')
     .option(...FORMAT_OPTION)

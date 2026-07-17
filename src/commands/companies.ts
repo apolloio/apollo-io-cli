@@ -172,15 +172,11 @@ export function registerCompanies(program: Command): void {
 
   companies
     .command('get')
-    .description('Get full details for a company by ID')
+    .description('Get complete organization info by Apollo organization ID')
     .requiredOption('--id <id>', 'Apollo organization ID')
     .option(...FORMAT_OPTION)
     .action(async (opts: CompaniesGetOptions) => {
-      const data = await apolloRequest('/mixed_companies/search', {
-        organization_ids: [opts.id],
-        per_page: 1,
-        page: 1,
-      });
+      const data = await apolloGet(`/organizations/${opts.id}`);
       print(data, opts.format);
     });
 

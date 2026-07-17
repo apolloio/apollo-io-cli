@@ -17,6 +17,12 @@ import { registerUsers } from './commands/users.js';
 import { registerEmailAccounts } from './commands/emailAccounts.js';
 import { registerUsage } from './commands/usage.js';
 import { registerAnalytics } from './commands/analytics.js';
+import { registerEmails } from './commands/emails.js';
+import { registerLabels } from './commands/labels.js';
+import { registerFields } from './commands/fields.js';
+import { registerNotes } from './commands/notes.js';
+import { registerConversations } from './commands/conversations.js';
+import { registerWebhooks } from './commands/webhooks.js';
 
 const program = new Command();
 
@@ -49,14 +55,20 @@ registerAuth(program);
 registerCalls(program);
 registerCompanies(program);
 registerContacts(program);
+registerConversations(program);
 registerDeals(program);
 registerEmailAccounts(program);
+registerEmails(program);
+registerFields(program);
+registerLabels(program);
 registerNews(program);
+registerNotes(program);
 registerPeople(program);
 registerSequences(program);
 registerTasks(program);
 registerUsage(program);
 registerUsers(program);
+registerWebhooks(program);
 
 program.addHelpCommand(false);
 program.addCommand(

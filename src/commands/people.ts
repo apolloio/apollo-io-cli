@@ -221,6 +221,16 @@ export function registerPeople(program: Command): void {
     });
 
   people
+    .command('get')
+    .description('Get complete person info by Apollo person ID')
+    .requiredOption('--id <id>', 'Apollo person ID')
+    .option(...FORMAT_OPTION)
+    .action(async (opts: PeopleEmailOptions) => {
+      const data = await apolloGet(`/people/${opts.id}`);
+      print(data, opts.format);
+    });
+
+  people
     .command('employees')
     .description('Find employees at a company')
     .option('--name <name>', 'Company name')
