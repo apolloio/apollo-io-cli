@@ -280,7 +280,6 @@ apollo contacts search --query "director" --per-page 25
 apollo contacts create --first-name Jane --last-name Doe --email jane@acme.com
 apollo contacts update --id <contact-id> --title "VP Sales"
 apollo contacts show --id <contact-id>
-apollo contacts deals --id <contact-id>
 apollo contacts bulk-create --file ./contacts.json
 apollo contacts bulk-update --ids <id1> <id2> --owner-id <user-id>
 apollo contacts update-stages --ids <id1> <id2> --stage-id <stage-id>
@@ -294,7 +293,6 @@ apollo contacts stages
 | `create` | Fields: `--first-name`, `--last-name`, `--email`, `--organization`, `--title`, `--account-id`, `--website-url`, `--address`, `--direct-phone`, `--corporate-phone`, `--mobile-phone`, `--home-phone`, `--other-phone`, `--label`. `--dedupe` enables Apollo dedup. |
 | `update` | Same fields as `create`; `--id` required. PATCHes `/api/v1/contacts/:id`. |
 | `show` | View one contact; `--id` required. |
-| `deals` | List deals (opportunities) associated with a contact; `--id` required. |
 | `bulk-create` | `--file <path>` to a JSON array (or `{ "contacts": [...] }`). |
 | `bulk-update` | Same values for many: `--ids` + `--owner-id`/`--account-id`. Per-contact values: `--file <path>` to a JSON array of objects with `id` (or `{ "contact_attributes": [...] }`). |
 | `update-stages` | Move contacts to a stage: `--ids`, `--stage-id` (from `contacts stages`). |

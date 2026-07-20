@@ -157,11 +157,10 @@ apollo contacts create --first-name Jane --last-name Doe --email jane@acme.com -
 apollo contacts update --id <contact_id> --title "VP Engineering"
 ```
 
-**View a contact, or its associated deals:**
+**View a contact:**
 
 ```bash
 apollo contacts show --id <contact_id>
-apollo contacts deals --id <contact_id>
 ```
 
 **Bulk-create from a JSON file (array, or `{ "contacts": [...] }`):**
@@ -463,7 +462,6 @@ apollo companies search --industry SaaS --funding "5000000,20000000" --location 
 | `news search` | `.news_articles[]` |
 | `contacts search` | `.contacts[]` (+ `.pagination`) |
 | `contacts create` / `contacts update` / `contacts show` | `.contact` |
-| `contacts deals` | `.opportunities[]` |
 | `contacts bulk-create` | `.created_contacts[]` |
 | `contacts bulk-update` / `contacts update-stages` / `contacts update-owners` | `.contacts[]` |
 | `contacts stages` | `.contact_stages[]` |

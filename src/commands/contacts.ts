@@ -192,16 +192,6 @@ export function registerContacts(program: Command): void {
     });
 
   contacts
-    .command('deals')
-    .description('View deals (opportunities) associated with a contact')
-    .requiredOption('--id <id>', 'Apollo contact ID')
-    .option(...FORMAT_OPTION)
-    .action(async (opts: ContactShowOptions) => {
-      const data = await apolloRequest(`/contacts/${opts.id}/opportunities`, {});
-      print(data, opts.format);
-    });
-
-  contacts
     .command('bulk-update')
     .description('Update multiple contacts — same values via --ids, or per-contact values via --file')
     .option('--file <path>', 'Path to JSON file with an array of contact objects (each needs "id"), or { "contact_attributes": [...] }')

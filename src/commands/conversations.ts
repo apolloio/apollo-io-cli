@@ -33,7 +33,7 @@ interface ConversationsExportOptions {
 export function buildConversationsSearchBody(opts: ConversationsSearchOptions): Record<string, unknown> {
   const body: Record<string, unknown> = {};
   if (opts.page !== undefined) body.page = Number(opts.page);
-  if (opts.limit !== undefined) body.num_fetch_result = Number(opts.limit);
+  if (opts.limit !== undefined) body.per_page = Number(opts.limit);
   if (opts.type) body.conversation_type = opts.type;
   if (opts.accountId) body.account_id = opts.accountId;
   if (opts.contactIds) body.contact_ids = opts.contactIds;

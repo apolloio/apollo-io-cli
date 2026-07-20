@@ -18,7 +18,7 @@ describe('buildConversationsSearchBody', () => {
       }),
     ).toEqual({
       page: 2,
-      num_fetch_result: 25,
+      per_page: 25,
       conversation_type: 'phone_call',
       account_id: 'acc_1',
       contact_ids: ['c1', 'c2'],
