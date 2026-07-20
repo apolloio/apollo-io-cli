@@ -11,15 +11,31 @@ const REDIRECT_URI = `http://localhost:${REDIRECT_PORT}/callback`;
 const SCOPES = [
   'people_bulk_match', 'organizations_bulk_enrich', 'organizations_enrich', 'people_match',
   'mixed_people_search', 'mixed_people_api_search', 'organizations_job_posting',
-  'mixed_companies_search', 'organizations_news_articles',
+  'mixed_companies_search', 'organizations_news_articles', 'organization_read', 'person_read',
   'contact_write', 'contact_update', 'contacts_search', 'contact_read', 'contacts_bulk_create',
-  'account_write', 'account_update', 'account_bulk_create',
+  'contacts_bulk_update', 'contact_stages_list', 'contact_stages_update', 'contact_owners_update',
+  'account_write', 'account_update', 'account_bulk_create', 'accounts_search', 'account_read',
+  'account_stages_list', 'account_stages_update', 'account_owners_update',
   'emailer_campaigns_search', 'emailer_campaigns_add_contact_ids', 'emailer_campaigns_remove_or_stop_contact_ids',
+  'emailer_campaigns_create', 'emailer_campaigns_update', 'emailer_campaigns_approve',
+  'emailer_campaigns_abort', 'emailer_campaigns_archive', 'emailer_schedules_list',
+  'emailer_messages_create', 'emailer_messages_send_now', 'emailer_messages_email_send_status',
+  'emailer_messages_search',
   'email_accounts_list', 'read_user_profile', 'users_list',
-  'opportunity_write', 'opportunities_list', 'opportunity_read',
+  'opportunity_write', 'opportunities_list', 'opportunity_read', 'opportunity_update', 'opportunity_stages_list',
   'phone_call_write', 'phone_call_search', 'phone_call_update',
   'tasks_create', 'tasks_list',
+  'tags_list', 'lists_create', 'lists_update', 'lists_add_entities', 'lists_remove_entities',
+  'custom_fields_list', 'custom_field_write',
+  'notes_list',
+  'conversations_search', 'conversations_show', 'conversations_export', 'conversations_find_export',
+  'webhook_result_read', 'api_usage_stats_read',
   'report_sync', 'credit_usage_stats_read',
+  // NOTE: `contacts deals` (api/v1/contacts/opportunities) and `emails stats`
+  // (api/v1/emailer_messages/:id/activities) have NO entry at all in Apollo's
+  // ENDPOINT_SCOPE_MAP (packs/iam/app/public/api/oauth_scope.rb in leadgenie) as of
+  // 2026-07-19 — no scope string can grant them yet. That needs a backend-side fix
+  // (a new scope added to the map), not just a CLI-side scope request.
 ].join(' ');
 const TIMEOUT_MS = 5 * 60 * 1000;
 
@@ -33,6 +49,14 @@ function generatePKCE(): PKCE {
 
 export function isInvalidClientError(message: string): boolean {
   return /invalid_client|unknown client/i.test(message);
+}
+
+// A cached client_id is registered with a fixed scope set. If SCOPES grows (e.g. new CLI
+// commands need new scopes), retrying with the old client_id fails with invalid_scope, not
+// invalid_client — the cached registration itself isn't invalid, it's just narrower than what
+// we're now requesting. Re-registering picks up the current SCOPES.
+export function isInvalidScopeError(message: string): boolean {
+  return /invalid_scope|requested scope is invalid/i.test(message);
 }
 
 function isOAuthTokenResponse(value: unknown): value is OAuthTokenResponse {
@@ -188,7 +212,7 @@ export async function oauthLogin(): Promise<OAuthLoginResult> {
     return await attemptLogin(clientId);
   } catch (err) {
     const message = err instanceof Error ? err.message : String(err);
-    if (!cachedClientId || !isInvalidClientError(message)) throw err;
+    if (!cachedClientId || (!isInvalidClientError(message) && !isInvalidScopeError(message))) throw err;
 
     console.log('Cached client registration is no longer valid — re-registering...');
     clearSavedClientId();
