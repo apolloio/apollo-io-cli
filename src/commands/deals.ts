@@ -36,8 +36,29 @@ interface DealsShowOptions {
   format?: string;
 }
 
+interface DealsUpdateOptions {
+  id: string;
+  name?: string;
+  ownerId?: string;
+  amount?: string;
+  stageId?: string;
+  closeDate?: string;
+  format?: string;
+}
+
+// Maps deals-update CLI options to the PATCH /opportunities/:id request body.
+export function buildDealsUpdateBody(opts: DealsUpdateOptions): Record<string, unknown> {
+  const body: Record<string, unknown> = {};
+  if (opts.name) body.name = opts.name;
+  if (opts.ownerId) body.owner_id = opts.ownerId;
+  if (opts.amount !== undefined) body.amount = opts.amount;
+  if (opts.stageId) body.opportunity_stage_id = opts.stageId;
+  if (opts.closeDate) body.closed_date = opts.closeDate;
+  return body;
+}
+
 export function registerDeals(program: Command): void {
-  const deals = program.command('deals').description('Create, search, and view deals (opportunities)');
+  const deals = program.command('deals').description('Create, search, view, and update deals (opportunities)');
 
   deals
     .command('create')
@@ -99,6 +120,30 @@ export function registerDeals(program: Command): void {
     .option(...FORMAT_OPTION)
     .action(async (opts: DealsShowOptions) => {
       const data = await apolloGet(`${DEALS_BASE}/${opts.id}`);
+      print(data, opts.format);
+    });
+
+  deals
+    .command('update')
+    .description('Update an existing deal by Apollo opportunity ID')
+    .requiredOption('--id <id>', 'Apollo opportunity ID')
+    .option('--name <name>', 'Deal name')
+    .option('--owner-id <id>', 'Apollo user ID of deal owner')
+    .option('--amount <amount>', 'Monetary value (no commas or currency symbols)')
+    .option('--stage-id <id>', 'Apollo opportunity stage ID — see `deals stages`')
+    .option('--close-date <date>', 'Expected close date (YYYY-MM-DD)')
+    .option(...FORMAT_OPTION)
+    .action(async (opts: DealsUpdateOptions) => {
+      const data = await apolloRequest(`${DEALS_BASE}/${opts.id}`, buildDealsUpdateBody(opts), 'PATCH');
+      print(data, opts.format);
+    });
+
+  deals
+    .command('stages')
+    .description('List deal stages (returns stage IDs for create/update/search)')
+    .option(...FORMAT_OPTION)
+    .action(async (opts: { format?: string }) => {
+      const data = await apolloGet('/opportunity_stages');
       print(data, opts.format);
     });
 }

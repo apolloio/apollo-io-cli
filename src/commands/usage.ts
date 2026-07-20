@@ -17,4 +17,13 @@ export function registerUsage(program: Command): void {
       const data = await apolloRequest('/usage_stats/credit_usage_stats', {});
       print(data, opts.format);
     });
+
+  usage
+    .command('api')
+    .description('View API usage stats and rate limits per endpoint')
+    .option(...FORMAT_OPTION)
+    .action(async (opts: UsageCreditsOptions) => {
+      const data = await apolloRequest('/usage_stats/api_usage_stats', {});
+      print(data, opts.format);
+    });
 }

@@ -1,12 +1,12 @@
 ---
 name: apollo-cli
-description: This skill should be used when searching for people, companies, employees, job postings, or news, OR when driving CRM data (contacts, accounts, deals), sequences, phone calls, tasks, analytics, or credit usage in Apollo.io from the terminal. Activates when the user asks to "find people", "search companies", "enrich a contact", "look up employees", "find jobs at a company", "get company news", "create a contact / account / deal", "log a call", "create a task", "add to sequence", "check analytics", "view credit usage", or any task involving Apollo.io data lookup or CRM writes from the terminal.
-version: 3.0.0
+description: This skill should be used when searching for people, companies, employees, job postings, or news, OR when driving CRM data (contacts, accounts, deals), sequences, one-off outreach emails, lists/labels, custom fields, notes, phone calls, tasks, conversations, analytics, or credit/API usage in Apollo.io from the terminal. Activates when the user asks to "find people", "search companies", "enrich a contact", "look up employees", "find jobs at a company", "get company news", "create a contact / account / deal", "log a call", "create a task", "add to sequence", "send an email", "add to a list", "check analytics", "view credit usage", or any task involving Apollo.io data lookup or CRM writes from the terminal.
+version: 4.0.0
 ---
 
 # Apollo CLI Skill
 
-Use the `apollo` CLI to drive Apollo.io end to end: search/enrich people and companies, surface news and job postings, manage CRM contacts/accounts/deals, drive sequences, log phone calls and tasks, pull analytics, and inspect credit usage. Output defaults to JSON for `jq` piping; use `-f, --format` to switch to `jsonl`, `csv`, `yaml`, or `table`.
+Use the `apollo` CLI to drive Apollo.io end to end: search/enrich people and companies, surface news and job postings, manage CRM contacts/accounts/deals, drive sequences, draft and send outreach emails, manage lists (labels) and custom fields, view notes, log phone calls and tasks, search recorded conversations, pull analytics, and inspect credit/API usage. Output defaults to JSON for `jq` piping; use `-f, --format` to switch to `jsonl`, `csv`, `yaml`, or `table`.
 
 ## Authentication
 
@@ -70,6 +70,12 @@ apollo people bulk-enrich --file people.json --reveal-personal-emails
 apollo people email --id <apollo_person_id>
 ```
 
+**Get complete person info by Apollo person ID:**
+
+```bash
+apollo people get --id <apollo_person_id>
+```
+
 **Find employees at a company:**
 
 ```bash
@@ -105,7 +111,7 @@ apollo companies enrich --name "Stripe"
 apollo companies bulk-enrich --domains stripe.com acme.com notion.so
 ```
 
-**Get full company details by Apollo organization ID:**
+**Get complete organization info by Apollo organization ID:**
 
 ```bash
 apollo companies get --id <organization_id>
@@ -151,10 +157,26 @@ apollo contacts create --first-name Jane --last-name Doe --email jane@acme.com -
 apollo contacts update --id <contact_id> --title "VP Engineering"
 ```
 
+**View a contact:**
+
+```bash
+apollo contacts show --id <contact_id>
+```
+
 **Bulk-create from a JSON file (array, or `{ "contacts": [...] }`):**
 
 ```bash
 apollo contacts bulk-create --file ./contacts.json
+```
+
+**Bulk operations across many contacts:**
+
+```bash
+apollo contacts bulk-update --ids <id1> <id2> --owner-id <user_id>       # same values for all
+apollo contacts bulk-update --file ./updates.json                        # per-contact values (objects need "id")
+apollo contacts update-stages --ids <id1> <id2> --stage-id <stage_id>    # stage IDs from `contacts stages`
+apollo contacts update-owners --ids <id1> <id2> --owner-id <user_id>
+apollo contacts stages                                                   # list contact stages -> stage IDs
 ```
 
 ---
@@ -164,7 +186,12 @@ apollo contacts bulk-create --file ./contacts.json
 ```bash
 apollo accounts create --name "Acme Co" --domain acme.com
 apollo accounts update --id <account_id> --phone 555-303-1234
+apollo accounts search --query "acme" --per-page 25      # matches account names; --stage-ids/--label-ids filters
+apollo accounts show --id <account_id>
 apollo accounts bulk-create --file ./accounts.json
+apollo accounts bulk-update --ids <id1> <id2> --stage-id <stage_id>   # or --file for per-account values
+apollo accounts update-owners --ids <id1> <id2> --owner-id <user_id>
+apollo accounts stages                                   # list account stages -> stage IDs
 ```
 
 ---
@@ -175,6 +202,8 @@ apollo accounts bulk-create --file ./accounts.json
 apollo deals create --name "Acme - Q2 Renewal" --amount 50000 --currency USD --account-id <id> --close-date 2026-06-30
 apollo deals search --account-id <id> --per-page 25
 apollo deals show --id <opportunity_id>
+apollo deals update --id <opportunity_id> --stage-id <stage_id> --amount 75000
+apollo deals stages                                      # list deal stages -> stage IDs
 ```
 
 ---
@@ -197,9 +226,83 @@ apollo sequences schedules                       # list send schedules -> emaile
 apollo sequences create --name "Q2 Outbound" --steps-file ./steps.json --schedule-id <id>
 apollo sequences update --id <seq_id> --steps-file ./steps.json --active   # --steps-file is the FULL step set
 apollo sequences approve --id <seq_id>           # approve a sequence pending review
+apollo sequences abort --id <seq_id>             # deactivate an active sequence (stops sending)
+apollo sequences archive --id <seq_id>           # archive a sequence
 ```
 
 `create`/`update` take the ordered `emailer_steps` as a JSON file (`--steps-file`); `create` requires `--name`, `update` requires `--id`. Activation: `create --active`, or `update --active`/`--inactive`. Get `--schedule-id` from `sequences schedules`. Activating + approving means contacts can start receiving real email — confirm with the user first.
+
+---
+
+### Emails (one-off outreach)
+
+`emails send` **delivers a real email**. Always show the draft (contact, subject, body) to the user and get explicit confirmation before sending.
+
+```bash
+apollo emails draft --contact-id <id> --subject "Quick question" --body-html "<p>Hi…</p>"   # draft only, no send
+apollo emails draft --reply-to <emailer_message_id> --body-file ./reply.html                # reply to an existing message
+apollo emails send --id <emailer_message_id>       # SEND the drafted email now
+apollo emails status --id <emailer_message_id>     # check send status
+apollo emails search -q "renewal" --stats delivered opened --per-page 25
+```
+
+Draft options: `--template-id`, `--task-id`, `--tracking`, `--attachment-ids`, `--recipients-file` (JSON array of `{ email, contact_id, recipient_type_cd }` for to/cc/bcc).
+
+---
+
+### Lists (labels)
+
+```bash
+apollo labels list                                                        # all lists -> label IDs and names
+apollo labels create --name "Conference 2026" --modality contacts         # or accounts; --book-of-business for account lists
+apollo labels update --id <label_id> --name "Conference 2026 (West)"
+apollo labels add --ids <id1> <id2> --names "Conference 2026" --modality contacts     # creates missing lists
+apollo labels remove --ids <id1> --names "Conference 2026" --modality contacts
+```
+
+`add`/`remove` accept `--async` for large batches (returns an `entity_progress_job` to poll instead of the updated lists).
+
+---
+
+### Fields (including custom fields)
+
+```bash
+apollo fields list                       # all fields; optional --source
+apollo fields custom                     # custom (typed) fields -> IDs for typed_custom_fields payloads
+apollo fields create --label "Renewal Date" --modality contact --type date   # modality: contact|account|opportunity
+```
+
+---
+
+### Notes
+
+```bash
+apollo notes list --contact-id <id>
+apollo notes list --account-id <id> --limit 50 --sort-direction desc
+```
+
+Filters: `--contact-id`, `--account-id`, `--opportunity-id`, `--calendar-event-id`, `--conversation-id(s)`, `--contact-ids`, `--start-date`, `--sort-by`, `--sort-direction`, `--skip`, `--limit`.
+
+---
+
+### Conversations (recorded calls/meetings)
+
+```bash
+apollo conversations search --type phone_call --date-from 2026-01-01T00:00:00Z --limit 25
+apollo conversations show --id <conversation_id>
+apollo conversations export --start 2026-01-01T00:00:00Z --end 2026-03-31T23:59:59Z --email you@team.com
+apollo conversations export-status --id <export_id>
+```
+
+Search filters: `--type video_conference|phone_call`, `--account-id`, `--contact-ids`, `--tag-ids`, `--tracker-ids`, `--organization-ids`, `--date-from`/`--date-to` (ISO 8601, GMT), `--sort-by`, `--limit`, `--page`.
+
+---
+
+### Webhook results
+
+```bash
+apollo webhooks result --request-id <id>   # poll the stored result of an async (webhook-based) request
+```
 
 ---
 
@@ -221,6 +324,10 @@ Apollo requires each task be tied to a contact, account, or opportunity in addit
 apollo tasks create --user-id <user_id> --type action_item --title "Follow up" --priority medium --contact-id <id>
 apollo tasks bulk-create --file ./tasks.json
 apollo tasks search --priority high --per-page 25
+apollo tasks show --id <task_id>
+apollo tasks update --id <task_id> --priority high --due-at 2026-08-01T09:00:00Z
+apollo tasks complete --id <task_id> --note "Called and connected"
+apollo tasks skip --id <task_id> --note "No longer relevant"
 ```
 
 Useful task `--type` values: `action_item`, `call`, `linkedin_step_message`.
@@ -251,6 +358,7 @@ Returns connected sending inboxes. **Always call this before `sequences add-cont
 
 ```bash
 apollo usage credits   # team-wide credit_usage_stats (lead / direct_dial / export / conversation / ai / power_up)
+apollo usage api       # per-endpoint API usage stats and rate limits
 ```
 
 For a single user's balance, prefer `apollo users profile --credits`.
@@ -345,27 +453,48 @@ apollo companies search --industry SaaS --funding "5000000,20000000" --location 
 | `people search` / `people employees` | `.people[]` |
 | `people enrich` | `.person` |
 | `people bulk-enrich` | `.matches[]` |
+| `people get` | `.person` |
 | `companies search` | `.accounts[]` |
 | `companies enrich` / `companies bulk-enrich` | `.organization` / `.organizations[]` |
-| `companies get` | `.accounts[0]` (filtered by org ID via mixed_companies/search) |
+| `companies get` | `.organization` |
 | `companies jobs` | `.organization_job_postings[]` |
 | `news search` | `.news_articles[]` |
 | `contacts search` | `.contacts[]` (+ `.pagination`) |
-| `contacts create` / `contacts update` | `.contact` |
+| `contacts create` / `contacts update` / `contacts show` | `.contact` |
 | `contacts bulk-create` | `.created_contacts[]` |
-| `accounts create` / `accounts update` | `.account` |
+| `contacts bulk-update` / `contacts update-stages` / `contacts update-owners` | `.contacts[]` |
+| `contacts stages` | `.contact_stages[]` |
+| `accounts create` / `accounts update` / `accounts show` | `.account` |
+| `accounts search` | `.accounts[]` (+ `.pagination`) |
 | `accounts bulk-create` | `.created_accounts[]` |
-| `deals create` / `deals show` | `.opportunity` |
+| `accounts bulk-update` / `accounts update-owners` | `.accounts[]` |
+| `accounts stages` | `.account_stages[]` |
+| `deals create` / `deals show` / `deals update` | `.opportunity` |
 | `deals search` | `.opportunities[]` |
+| `deals stages` | `.opportunity_stages[]` |
 | `sequences search` | `.emailer_campaigns[]` (+ `.pagination`) |
 | `sequences add-contacts` / `sequences remove-contacts` | varies — confirmation payload |
+| `sequences abort` / `sequences archive` | `.emailer_campaign` |
+| `emails draft` | `.emailer_message` |
+| `emails send` / `emails status` | send-status payload |
+| `emails search` | `.emailer_messages[]` (+ `.pagination`) |
+| `labels list` / `labels create` / `labels update` | `.labels[]` / `.label` |
+| `labels add` / `labels remove` | updated `.labels[]` (or `.entity_progress_job` with `--async`) |
+| `fields list` / `fields custom` | `.fields[]` / `.typed_custom_fields[]` |
+| `notes list` | `.notes[]` |
+| `conversations search` | `.conversations[]` |
+| `conversations show` | conversation object |
+| `conversations export` / `conversations export-status` | export-job payload |
 | `calls log` / `calls update` | `.phone_call` |
 | `calls search` | `.phone_calls[]` |
-| `tasks create` | `.task` |
+| `tasks create` / `tasks show` / `tasks update` | `.task` |
 | `tasks bulk-create` | `.tasks[]` (or similar bulk wrapper) |
 | `tasks search` | `.tasks[]` |
+| `tasks complete` / `tasks skip` | confirmation payload |
 | `users profile` | top-level user object (no wrapper); credit fields appear with `--credits` |
 | `users search` | `.users[]` (+ `.pagination`) |
 | `email-accounts list` | `.email_accounts[]` |
 | `usage credits` | `.credit_usage_stats` (object keyed by credit type) |
+| `usage api` | per-endpoint usage/rate-limit object |
+| `webhooks result` | stored webhook payload |
 | `analytics report` | `.response` (primary result data), `.incompatible_filters`, `.computed_filters`, `.goals` |

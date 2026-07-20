@@ -25,3 +25,18 @@ export function parseRange(input: string): { min: string; max: string } {
   const [min, max] = input.split(',');
   return { min: min ?? '', max: max ?? '' };
 }
+
+// Reads a JSON file that contains either a bare array or `{ "<wrapperKey>": [...] }`.
+export async function readJsonArrayFile(path: string, wrapperKey: string): Promise<unknown[]> {
+  const fs = await import('node:fs/promises');
+  const text = await fs.readFile(path, 'utf8');
+  const parsed: unknown = JSON.parse(text);
+  const arr = Array.isArray(parsed)
+    ? parsed
+    : (parsed as Record<string, unknown>)[wrapperKey];
+  if (!Array.isArray(arr)) {
+    console.error(`Error: file must contain a JSON array (or { "${wrapperKey}": [...] })`);
+    process.exit(1);
+  }
+  return arr;
+}

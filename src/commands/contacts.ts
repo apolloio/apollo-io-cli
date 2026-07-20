@@ -1,7 +1,7 @@
 import type { Command } from 'commander';
-import { apolloRequest } from '../api.js';
+import { apolloGet, apolloRequest } from '../api.js';
 import { print, FORMAT_OPTION } from '../output.js';
-import { parsePageOptions } from '../utils.js';
+import { parsePageOptions, readJsonArrayFile } from '../utils.js';
 
 interface ContactFields {
   firstName?: string;
@@ -41,6 +41,31 @@ interface ContactSearchOptions {
 
 interface ContactBulkCreateOptions {
   file: string;
+  format?: string;
+}
+
+interface ContactShowOptions {
+  id: string;
+  format?: string;
+}
+
+interface ContactBulkUpdateOptions {
+  file?: string;
+  ids?: string[];
+  ownerId?: string;
+  accountId?: string;
+  format?: string;
+}
+
+interface ContactUpdateStagesOptions {
+  ids: string[];
+  stageId: string;
+  format?: string;
+}
+
+interface ContactUpdateOwnersOptions {
+  ids: string[];
+  ownerId: string;
   format?: string;
 }
 
@@ -153,6 +178,78 @@ export function registerContacts(program: Command): void {
         process.exit(1);
       }
       const data = await apolloRequest('/contacts/bulk_create', { contacts: arr });
+      print(data, opts.format);
+    });
+
+  contacts
+    .command('show')
+    .description('View a single contact by Apollo contact ID')
+    .requiredOption('--id <id>', 'Apollo contact ID')
+    .option(...FORMAT_OPTION)
+    .action(async (opts: ContactShowOptions) => {
+      const data = await apolloGet(`/contacts/${opts.id}`);
+      print(data, opts.format);
+    });
+
+  contacts
+    .command('bulk-update')
+    .description('Update multiple contacts — same values via --ids, or per-contact values via --file')
+    .option('--file <path>', 'Path to JSON file with an array of contact objects (each needs "id"), or { "contact_attributes": [...] }')
+    .option('--ids <ids...>', 'Contact IDs to apply the same update to (use with --owner-id/--account-id)')
+    .option('--owner-id <id>', 'Owner user ID to apply to all contacts in --ids')
+    .option('--account-id <id>', 'Account ID to apply to all contacts in --ids')
+    .option(...FORMAT_OPTION)
+    .action(async (opts: ContactBulkUpdateOptions) => {
+      if (!opts.file && !opts.ids) {
+        console.error('Error: provide --file or --ids');
+        process.exit(1);
+      }
+      const body: Record<string, unknown> = {};
+      if (opts.file) {
+        body.contact_attributes = await readJsonArrayFile(opts.file, 'contact_attributes');
+      } else {
+        body.contact_ids = opts.ids;
+        if (opts.ownerId) body.owner_id = opts.ownerId;
+        if (opts.accountId) body.account_id = opts.accountId;
+      }
+      const data = await apolloRequest('/contacts/bulk_update', body);
+      print(data, opts.format);
+    });
+
+  contacts
+    .command('update-stages')
+    .description('Move multiple contacts to a contact stage')
+    .requiredOption('--ids <ids...>', 'Apollo contact IDs')
+    .requiredOption('--stage-id <id>', 'Target contact stage ID — see `contacts stages`')
+    .option(...FORMAT_OPTION)
+    .action(async (opts: ContactUpdateStagesOptions) => {
+      const data = await apolloRequest('/contacts/update_stages', {}, 'POST', {
+        contact_ids: opts.ids,
+        contact_stage_id: opts.stageId,
+      });
+      print(data, opts.format);
+    });
+
+  contacts
+    .command('update-owners')
+    .description('Assign an owner to multiple contacts')
+    .requiredOption('--ids <ids...>', 'Apollo contact IDs')
+    .requiredOption('--owner-id <id>', 'Apollo user ID of the new owner')
+    .option(...FORMAT_OPTION)
+    .action(async (opts: ContactUpdateOwnersOptions) => {
+      const data = await apolloRequest('/contacts/update_owners', {}, 'POST', {
+        contact_ids: opts.ids,
+        owner_id: opts.ownerId,
+      });
+      print(data, opts.format);
+    });
+
+  contacts
+    .command('stages')
+    .description('List contact stages (returns stage IDs for update-stages)')
+    .option(...FORMAT_OPTION)
+    .action(async (opts: { format?: string }) => {
+      const data = await apolloGet('/contact_stages');
       print(data, opts.format);
     });
 }
