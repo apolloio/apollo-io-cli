@@ -457,7 +457,6 @@ One-off outreach emails (drafts and sends outside sequences). **`send` delivers 
 apollo emails draft --contact-id <id> --subject "Quick question" --body-html "<p>Hi there…</p>"
 apollo emails send --id <emailer-message-id>
 apollo emails status --id <emailer-message-id>
-apollo emails stats --id <emailer-message-id>
 apollo emails search --query "renewal" --stats delivered opened --per-page 25
 ```
 
@@ -466,7 +465,6 @@ apollo emails search --query "renewal" --stats delivered opened --per-page 25
 | `draft` | Requires `--contact-id` or `--reply-to <message-id>`. Optional: `--subject`, `--body-html`/`--body-file`, `--template-id`, `--task-id`, `--tracking`, `--attachment-ids`, `--recipients-file` (JSON array of `{ email, contact_id, recipient_type_cd }`). Creates the draft only. |
 | `send` | Sends a drafted email immediately; `--id` required. |
 | `status` | Check send status; `--id` required. |
-| `stats` | Open/click/reply activity for an email; `--id` required. |
 | `search` | `-q/--query`, `--user-ids`, `--stats`, `--reply-classes`, `--email-account-id`, `--sequence-ids`, `--not-sequence-ids`, `--date-range-mode`, `--date-from`/`--date-to`, paging. |
 
 ---

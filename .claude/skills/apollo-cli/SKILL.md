@@ -243,7 +243,6 @@ apollo emails draft --contact-id <id> --subject "Quick question" --body-html "<p
 apollo emails draft --reply-to <emailer_message_id> --body-file ./reply.html                # reply to an existing message
 apollo emails send --id <emailer_message_id>       # SEND the drafted email now
 apollo emails status --id <emailer_message_id>     # check send status
-apollo emails stats --id <emailer_message_id>      # opens / clicks / replies
 apollo emails search -q "renewal" --stats delivered opened --per-page 25
 ```
 
@@ -478,7 +477,6 @@ apollo companies search --industry SaaS --funding "5000000,20000000" --location 
 | `sequences abort` / `sequences archive` | `.emailer_campaign` |
 | `emails draft` | `.emailer_message` |
 | `emails send` / `emails status` | send-status payload |
-| `emails stats` | `.emailer_message` with activity fields |
 | `emails search` | `.emailer_messages[]` (+ `.pagination`) |
 | `labels list` / `labels create` / `labels update` | `.labels[]` / `.label` |
 | `labels add` / `labels remove` | updated `.labels[]` (or `.entity_progress_job` with `--async`) |

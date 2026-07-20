@@ -31,10 +31,11 @@ const SCOPES = [
   'conversations_search', 'conversations_show', 'conversations_export', 'conversations_find_export',
   'webhook_result_read', 'api_usage_stats_read',
   'report_sync', 'credit_usage_stats_read',
-  // NOTE: `emails stats` (api/v1/emailer_messages/:id/activities) has NO entry at all in
-  // Apollo's ENDPOINT_SCOPE_MAP (packs/iam/app/public/api/oauth_scope.rb in leadgenie) as of
-  // 2026-07-19 — no scope string can grant it yet. That needs a backend-side fix
-  // (a new scope added to the map), not just a CLI-side scope request.
+  // NOTE: `contacts deals` (api/v1/contacts/opportunities) and `emails stats`
+  // (api/v1/emailer_messages/:id/activities) were removed from the CLI rather than left
+  // permanently broken: both endpoints have NO entry at all in Apollo's ENDPOINT_SCOPE_MAP
+  // (packs/iam/app/public/api/oauth_scope.rb in leadgenie) as of 2026-07-20 — no scope string
+  // can grant them yet. Re-add the commands once a backend-side fix adds a scope for either.
 ].join(' ');
 const TIMEOUT_MS = 5 * 60 * 1000;
 

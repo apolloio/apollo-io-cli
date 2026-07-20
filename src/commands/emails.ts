@@ -100,16 +100,6 @@ export function registerEmails(program: Command): void {
     });
 
   emails
-    .command('stats')
-    .description('Check email activity stats (opens, clicks, replies)')
-    .requiredOption('--id <id>', 'Emailer message ID')
-    .option(...FORMAT_OPTION)
-    .action(async (opts: EmailIdOptions) => {
-      const data = await apolloGet(`/emailer_messages/${opts.id}/activities`);
-      print(data, opts.format);
-    });
-
-  emails
     .command('search')
     .description('Search outreach emails sent by your team')
     .option('-q, --query <keywords>', 'Free-text keyword search')
