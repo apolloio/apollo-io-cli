@@ -1,7 +1,7 @@
 import type { Command } from 'commander';
 import { apolloGet, apolloRequest } from '../api.js';
 import { print, FORMAT_OPTION } from '../output.js';
-import { parsePageOptions, parseRange } from '../utils.js';
+import { parsePageOptions, parseRange, parseDepartmentHeadcounts } from '../utils.js';
 
 interface PeopleSearchOptions {
   query?: string;
@@ -27,6 +27,7 @@ interface PeopleSearchOptions {
   revenue?: string;
   funding?: string;
   totalFunding?: string;
+  departmentHeadcount?: string[];
   page?: string;
   perPage?: string;
   format?: string;
@@ -94,6 +95,9 @@ export function buildPeopleSearchBody(opts: PeopleSearchOptions): Record<string,
   if (opts.revenue) body.revenue_range = parseRange(opts.revenue);
   if (opts.funding) body.latest_funding_amount_range = parseRange(opts.funding);
   if (opts.totalFunding) body.total_funding_range = parseRange(opts.totalFunding);
+  if (opts.departmentHeadcount) {
+    body.organization_department_or_subdepartment_counts = parseDepartmentHeadcounts(opts.departmentHeadcount);
+  }
 
   return body;
 }
@@ -144,6 +148,13 @@ export function registerPeople(program: Command): void {
     .option('--revenue <range>', 'Company revenue range as "min,max" (e.g. "1000000,5000000")')
     .option('--funding <range>', 'Company latest funding amount as "min,max"')
     .option('--total-funding <range>', 'Company total funding raised as "min,max"')
+    .option(
+      '--department-headcount <entries...>',
+      'Filter by employee count in a department at the company, as "department:min,max" (e.g. master_sales:0,2). ' +
+        'Valid departments: c_suite, product_management, master_engineering_technical, design, education, ' +
+        'master_finance, master_human_resources, master_information_technology, master_legal, master_marketing, ' +
+        'medical_health, master_operations, master_sales, consulting',
+    )
     .option('--per-page <n>', 'Results per page', '10')
     .option('--page <n>', 'Page number', '1')
     .option(...FORMAT_OPTION)
