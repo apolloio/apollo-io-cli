@@ -88,6 +88,9 @@ apollo people search --department engineering --technology react --per-page 25
 # Company-attribute filters apply to the person's employer — combine them to
 # target people by title AND their company's size, hiring activity, etc. in one call:
 apollo people search --title CTO --employees "51,200" --hiring-for "Software Engineer"
+
+# Find founders whose company has almost no sales team (0-2 people in sales):
+apollo people search --title Founder --department-headcount "master_sales:0,2"
 ```
 
 | Option | Description |
@@ -115,6 +118,7 @@ apollo people search --title CTO --employees "51,200" --hiring-for "Software Eng
 | `--revenue` | Company revenue range as `"min,max"` |
 | `--funding` | Company latest funding amount as `"min,max"` |
 | `--total-funding` | Company total funding raised as `"min,max"` |
+| `--department-headcount` | Employee count in a department at the company, as `"department:min,max"` (e.g. `master_sales:0,2`). Valid departments: `c_suite` `product_management` `master_engineering_technical` `design` `education` `master_finance` `master_human_resources` `master_information_technology` `master_legal` `master_marketing` `medical_health` `master_operations` `master_sales` `consulting` |
 | `--per-page` | Results per page (default: 10) |
 | `--page` | Page number (default: 1) |
 

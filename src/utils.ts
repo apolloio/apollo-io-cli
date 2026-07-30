@@ -26,6 +26,21 @@ export function parseRange(input: string): { min: string; max: string } {
   return { min: min ?? '', max: max ?? '' };
 }
 
+// Parses "department:min,max" entries (e.g. "master_sales:0,2") into the
+// { [department]: { min, max } } shape organization_department_or_subdepartment_counts expects.
+export function parseDepartmentHeadcounts(entries: string[]): Record<string, { min: string; max: string }> {
+  const result: Record<string, { min: string; max: string }> = {};
+  for (const entry of entries) {
+    const [department, range] = entry.split(':');
+    if (!department || !range) {
+      console.error(`Error: invalid --department-headcount "${entry}", expected "department:min,max"`);
+      process.exit(1);
+    }
+    result[department] = parseRange(range);
+  }
+  return result;
+}
+
 // Reads a JSON file that contains either a bare array or `{ "<wrapperKey>": [...] }`.
 export async function readJsonArrayFile(path: string, wrapperKey: string): Promise<unknown[]> {
   const fs = await import('node:fs/promises');

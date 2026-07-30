@@ -54,6 +54,16 @@ describe('buildPeopleSearchBody', () => {
   it('omits unset filters', () => {
     expect(buildPeopleSearchBody({})).toEqual({});
   });
+
+  it('maps --department-headcount to organization_department_or_subdepartment_counts', () => {
+    const body = buildPeopleSearchBody({
+      departmentHeadcount: ['master_sales:0,2', 'master_engineering_technical:50,200'],
+    });
+    expect(body.organization_department_or_subdepartment_counts).toEqual({
+      master_sales: { min: '0', max: '2' },
+      master_engineering_technical: { min: '50', max: '200' },
+    });
+  });
 });
 
 describe('buildPeopleEnrichBody', () => {
