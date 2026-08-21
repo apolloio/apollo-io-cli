@@ -59,7 +59,7 @@ competitive to the one Andy's "high-volume pipeline" claim is about.
 | Case | Shape | Why it's here |
 |---|---|---|
 | `single-enrich` | 1 call, small payload | Floor case. Almost all of the delta is fixed tool-definition overhead, so this is where MCP looks best. |
-| `filtered-search` | 1 call, large payload, 4 of ~90 fields needed | An Apollo `people search` page is a big JSON document. The CLI can project with `jq` *before* anything enters the context window; MCP returns the whole payload into context. |
+| `filtered-search` | 1 call, compact payload | Intended as the CLI's projection win, but measurement showed Apollo's `people search` returns only 11 fields per person (465 B each, 16.6 KB for 25) — so there is little to project away. MCP does load the full payload (15.7 KB vs the CLI's `jq`-projected 2.4 KB), but ~11k tokens of savings is ~2% of a 400k-token run. |
 | `chained-pipeline` | ~11–21 calls, fan-out per company | Search → per-company job postings → per-company decision-maker. The CLI composes this in a shell pipeline; MCP pays a round trip, and a full result payload, per hop. |
 
 Edit `cases.json` to add cases; ids are the handles for `--cases`.

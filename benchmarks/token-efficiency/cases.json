@@ -9,7 +9,7 @@
   {
     "id": "filtered-search",
     "name": "Filtered people search with field projection",
-    "shape": "1 API call, large payload, 4 of ~90 fields needed",
+    "shape": "1 call, compact 11-field payload (16.6 KB / 25 people)",
     "prompt": "Find 25 VP-level-or-above engineering leaders at SaaS companies in the United States with 51-200 employees. Output a markdown table with exactly four columns: name, title, company, LinkedIn URL. No commentary.",
     "grade": { "minRows": 20, "mustContain": [] }
   },
