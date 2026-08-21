@@ -1,0 +1,73 @@
+{
+  "opts": {
+    "reps": 2,
+    "model": "claude-sonnet-5",
+    "effort": "medium",
+    "cases": [
+      "chained-pipeline"
+    ],
+    "arms": [
+      "mcp"
+    ],
+    "budget": 6,
+    "timeout": 900,
+    "keep": false,
+    "out": "/private/tmp/claude-501/-Users-alexander-apollo-draft-pilot/077debf2-3f33-4956-9f4a-3639978d9e86/scratchpad/results-fill.json"
+  },
+  "perCase": [
+    {
+      "id": "chained-pipeline",
+      "name": "Chained multi-entity pipeline",
+      "shape": "~11-21 API calls, fan-out per company",
+      "cli": {
+        "totalTokens": 0,
+        "billable": 0,
+        "cost": 0,
+        "turns": 0
+      },
+      "mcp": {
+        "totalTokens": 4517548.5,
+        "billable": 894216.425,
+        "cost": 3.4035816500000005,
+        "turns": 32.5
+      }
+    }
+  ],
+  "runs": [
+    {
+      "arm": "mcp",
+      "caseId": "chained-pipeline",
+      "rep": 1,
+      "ok": true,
+      "complete": true,
+      "resultText": "| Company Name | # Software Engineering Job Postings | Decision-Maker Name | Decision-Maker Title |\n|---|---|---|---|\n| Apptad | 3 | Arbind Singh | Co-Founder and CEO |\n| Seclore | 7 | Nilesh Bhojani | Chief Product & Technology Officer |\n| nference | 3 | Ganesh Ramamoorthy | VP, Engineering |\n| Rocketlane | 2 | Deepak Bala | Co-Founder & CTO |\n| SambaNova | ~20 | Dawei Huang | Vice President of Engineering |\n| PathAI | 5 | Aditya Dhoot | Director of Engineering |\n| Ursa Major | 3 | William Somers | Director of Engineering |\n| Tyfone, Inc. | 2 | Lakshman Prabu | Chief Technology Officer |\n| Aerospike | 2 | Yossi Levanoni | VP of Engineering |\n| Inspectorio | 4 | Yagor Maliutsin | VP of Engineering |",
+      "inputTokens": 1547,
+      "cacheCreationTokens": 328417,
+      "cacheReadTokens": 2392969,
+      "outputTokens": 25255,
+      "totalTokens": 2748188,
+      "billableEquivalent": 676620.15,
+      "costUsd": 2.5192392,
+      "numTurns": 1,
+      "durationMs": 6188
+    },
+    {
+      "arm": "mcp",
+      "caseId": "chained-pipeline",
+      "rep": 2,
+      "ok": true,
+      "complete": true,
+      "resultText": "Now I have all data needed. Let me compile the final table.\n\n## Companies (201–500 employees, US, actively hiring software engineers)\n\n| Company | Software-Engineering Job Postings | Decision-Maker Name | Title |\n|---|---|---|---|\n| Rocketlane | 2 | Deepak Bala | Co-Founder & CTO |\n| PathAI | 3 | Aditya Dhoot | Director of Engineering |\n| nference | 3 | Ganesh Ramamoorthy | VP, Engineering |\n| Inspectorio | 2 | Yagor Maliutsin | VP of Engineering |\n| DaCodes | 2 | Eric Segovia | VP of Engineering |\n| Tyfone, Inc. | 2 | Nizar Jamal | CTO |\n| Seclore | 1 | Nilesh Bhojani | Chief Product & Technology Officer |\n| Aerospike | 1 | Yossi Levanoni | VP of Engineering |\n| Bidgely | 1 | Samarjit Ghosh | SVP Head of Engineering & India Head |\n| Abacus.AI | 1 | Ajit Deshpande | VP Engineering & CSO |",
+      "inputTokens": 1659,
+      "cacheCreationTokens": 382230,
+      "cacheReadTokens": 5856282,
+      "outputTokens": 46738,
+      "totalTokens": 6286909,
+      "billableEquivalent": 1111812.7000000002,
+      "costUsd": 4.287924100000001,
+      "numTurns": 64,
+      "durationMs": 748094
+    }
+  ],
+  "report": "# Apollo CLI vs MCP — token efficiency\n\nModel `claude-sonnet-5` · 2 reps per arm per case (median reported) · effort medium · $6.00 budget cap per run\n\n> ⚠️ `chained-pipeline` / cli: only 0 of 2 reps completed — median is not meaningful.\n\n| Case | Shape | MCP tokens | CLI tokens | CLI saves | MCP turns | CLI turns |\n|---|---|---:|---:|---:|---:|---:|\n| Chained multi-entity pipeline | ~11-21 API calls, fan-out per company | 4,517,549 | 0 | 100.0% | 33 | 0 |\n\n**Average saving (equal-weighted across cases): 100.0%**\n\nPooled across all cases: 4,517,549 → 0 tokens (100.0%).\nCost-weighted (cache reads at 0.1x): 100.0% · billed USD: $3.4036 → $0.0000 (100.0%)."
+}

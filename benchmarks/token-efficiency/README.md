@@ -7,6 +7,22 @@ Built to answer a specific question: **is there a number we can point to when we
 fewer tokens than MCP for high-volume agent pipelines?** This harness produces that number; it does
 not assume it.
 
+## Latest result
+
+[`results/2026-08-21-sonnet-5.md`](results/2026-08-21-sonnet-5.md) — `claude-sonnet-5`, 3 reps/arm/case:
+
+| Case | MCP tokens | CLI tokens | CLI saves |
+|---|---:|---:|---:|
+| Single company enrichment | 262,979 | 120,786 | **+54.1%** |
+| Filtered people search | 405,040 | 566,471 | **−39.9%** |
+| Chained multi-entity pipeline | 2,748,188 | 1,061,312 | **+61.4%** |
+
+Equal-weighted mean **+25.2%**; pooled **+48.8%**.
+
+The mean lands on "25% fewer tokens" almost exactly — but it is the average of +54%, −40%
+and +61%, so no real workload is described by "about a quarter". **The direction flips with
+workload shape.** Read the caveats in the results doc before quoting anything.
+
 ## Run it
 
 ```bash
@@ -25,8 +41,10 @@ fails closed rather than silently measuring an empty tool surface.
 |---|---|---|
 | `--reps <n>` | `3` | repetitions per arm per case; the **median** is reported |
 | `--model <id>` | `claude-sonnet-5` | same model for both arms |
+| `--effort <level>` | `medium` | reasoning effort, pinned across both arms |
 | `--cases <ids>` | all | comma-separated ids from `cases.json` |
-| `--max-turns <n>` | `30` | turn cap per run |
+| `--budget <usd>` | `1.00` | per-run spend cap (`--max-budget-usd`) |
+| `--timeout <sec>` | `300` | per-run wall-clock cap before the child is killed |
 | `--keep` | off | keep the scratch workspaces for transcript inspection |
 | `--out <path>` | `results.json` | raw per-run data |
 
@@ -74,19 +92,18 @@ closer to what a real high-volume workload would bill. Report both; don't pick t
 Structural differences between the two arms are the thing being measured, so everything else is
 pinned:
 
-- **Same prompt, same model, same turn cap** for both arms.
+- **Same prompt, same model, same effort level, same per-run budget cap** for both arms.
 - **Empty scratch cwd per run** (`mkdtemp`) — no `CLAUDE.md`, no project settings, no repo context.
-- **`--settings '{}'`** — the operator's global settings, plugins and enabled MCP servers do not
-  leak into either arm.
+- **`--setting-sources project`** — loads project settings only. This keeps the operator's
+  user-level settings and globally-enabled plugins (which contribute a dozen-plus extra skills)
+  out of *both* arms, while still discovering the scratch cwd's `.claude/skills`. Note that
+  `--setting-sources ""` is *not* usable here: it also stops the cwd skill from being discovered,
+  silently gutting the CLI arm.
 - **`--strict-mcp-config`** — the CLI arm is given `{"mcpServers":{}}`, so it cannot fall back to
   an MCP server; the MCP arm is given only `apollo-work`.
 - **Bash is denied in the MCP arm**, so it cannot shell out to the CLI and win on its behalf.
 - **The CLI arm gets the shipped `apollo-cli` skill** copied into its scratch cwd, because that is
-  how a real CLI user has it — and its context cost is therefore counted, not hidden. Note the
-  asymmetry this creates and keep it in mind when reading the floor case: the skill body is loaded
-  *on demand* (progressive disclosure), whereas MCP tool schemas are loaded *up front* for every
-  session regardless of whether any are used. That is a real property of the two designs, not a
-  measurement artifact.
+  how a real CLI user has it — so its context cost is counted, not hidden.
 - **Median of N reps**, because agent trajectories vary run to run. Raise `--reps` before quoting a
   number externally; 3 is enough to spot a wild run, not enough to be a confidence interval.
 
@@ -99,8 +116,13 @@ pinned:
    if the two arms took very different turn counts, you are partly measuring planning luck.
 3. **Credit consumption.** These are real Apollo API calls. `filtered-search` and
    `chained-pipeline` consume credits on every rep — `--reps 3` across 3 cases is 18 runs.
-4. **The MCP arm's cost depends on how many tools its server exposes.** `mcp.apollo.io` exposes on
-   the order of 140 tools; a server exposing 10 would have a much smaller fixed overhead. The
-   result is a statement about *this* MCP server, not about MCP as a protocol.
-5. **No numbers are committed here yet.** This directory is the instrument. Run it, commit the
-   output under `results/` with the date and model, and cite that.
+4. **The MCP arm's cost depends on how many tools its server exposes _and on whether the client
+   loads them eagerly_.** See the finding below — this is the single biggest thing to understand
+   before quoting any number.
+5. The result is a statement about *this* MCP server and *this* client version, not about MCP as a
+   protocol. In Claude Code 2.1.238 the ~90 `apollo-work` tools are **deferred behind `ToolSearch`**
+   rather than loaded into context up front, so the MCP arm does not pay a per-schema tax every
+   session — which removes much of the usual justification for expecting a large CLI win.
+6. **A run that doesn't finish must never be scored.** The MCP server's credit-cost annotations make
+   the agent stop and ask for confirmation; that spends few tokens and looks like efficiency. Both
+   arms get an identical pre-approval suffix, and every run must pass `gradeComplete()`.

@@ -3,18 +3,21 @@
     "id": "single-enrich",
     "name": "Single company enrichment",
     "shape": "1 API call, small payload",
-    "prompt": "Enrich the company stripe.com in Apollo. Report exactly three facts and nothing else: employee count, industry, and estimated annual revenue."
+    "prompt": "Enrich the company stripe.com in Apollo. Report exactly three facts and nothing else: employee count, industry, and estimated annual revenue.",
+    "grade": { "minRows": 0, "mustContain": ["revenue"] }
   },
   {
     "id": "filtered-search",
     "name": "Filtered people search with field projection",
     "shape": "1 API call, large payload, 4 of ~90 fields needed",
-    "prompt": "Find 25 VP-level-or-above engineering leaders at SaaS companies in the United States with 51-200 employees. Output a markdown table with exactly four columns: name, title, company, LinkedIn URL. No commentary."
+    "prompt": "Find 25 VP-level-or-above engineering leaders at SaaS companies in the United States with 51-200 employees. Output a markdown table with exactly four columns: name, title, company, LinkedIn URL. No commentary.",
+    "grade": { "minRows": 20, "mustContain": [] }
   },
   {
     "id": "chained-pipeline",
     "name": "Chained multi-entity pipeline",
     "shape": "~11-21 API calls, fan-out per company",
-    "prompt": "Find 10 companies in the United States with 201-500 employees that are currently hiring software engineers. For each one, report the company name, how many software-engineering job postings it has open, and the name and title of its most senior engineering decision-maker. Output a markdown table with those four columns. No commentary."
+    "prompt": "Find 10 companies in the United States with 201-500 employees that are currently hiring software engineers. For each one, report the company name, how many software-engineering job postings it has open, and the name and title of its most senior engineering decision-maker. Output a markdown table with those four columns. No commentary.",
+    "grade": { "minRows": 8, "mustContain": [] }
   }
 ]

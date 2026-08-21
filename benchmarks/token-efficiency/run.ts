@@ -16,8 +16,11 @@
  * Options:
  *   --reps <n>        repetitions per arm per case (default 3, median reported)
  *   --model <id>      model for both arms (default claude-sonnet-5)
+ *   --effort <level>  reasoning effort for both arms (default medium)
  *   --cases <ids>     comma-separated case ids to run (default: all)
- *   --max-turns <n>   turn cap per run (default 30)
+ *   --arms <arms>     comma-separated arms to run: cli,mcp (default both)
+ *   --budget <usd>    per-run spend cap handed to --max-budget-usd (default 6.00)
+ *   --timeout <sec>   per-run wall-clock cap before the child is killed (default 300)
  *   --keep            keep the scratch workspaces for transcript inspection
  *   --out <path>      write raw results JSON here (default results.json alongside this file)
  */
@@ -39,7 +42,23 @@ type Case = {
   name: string;
   shape: string;
   prompt: string;
+  /** Completion gate — see gradeComplete(). */
+  grade: { minRows: number; mustContain: string[] };
 };
+
+/**
+ * Appended verbatim to every prompt in BOTH arms.
+ *
+ * Without this the comparison is invalid. The MCP server annotates credit-consuming
+ * tools with cost warnings, so the agent frequently stops and asks "this will cost 10
+ * credits, proceed?" — burning a fraction of the tokens and never finishing the task.
+ * The CLI surfaces no such warning and just does the work. Left uncontrolled, the MCP
+ * arm books a cheap "win" for abandoning the task.
+ */
+const PROMPT_SUFFIX =
+  "\n\nThis is an automated benchmark run with no interactive user. Credit spend is pre-approved: " +
+  "do not ask for confirmation, do not ask clarifying questions, and do not stop to flag cost. " +
+  "Complete the whole task and output only the final answer.";
 
 /** The four token buckets Claude Code reports, plus derived totals. */
 type Usage = {
@@ -60,14 +79,46 @@ type Usage = {
   durationMs: number;
 };
 
-type Run = Usage & { arm: Arm; caseId: string; rep: number; ok: boolean; error?: string };
+type Run = Usage & {
+  arm: Arm;
+  caseId: string;
+  rep: number;
+  /** The claude invocation returned a parseable, non-error result. */
+  ok: boolean;
+  /** ok AND the answer actually satisfies the case's completion gate. */
+  complete: boolean;
+  resultText: string;
+  error?: string;
+};
+
+/**
+ * A run only counts if it did the job. An agent that answers "shall I proceed?" spends
+ * few tokens and must not be scored as efficient. Counts markdown table data rows and
+ * checks for required substrings.
+ */
+function gradeComplete(text: string, grade: Case["grade"]): boolean {
+  const lower = text.toLowerCase();
+  if (grade.mustContain.some((m) => !lower.includes(m.toLowerCase()))) return false;
+  if (grade.minRows > 0) {
+    const rows = text
+      .split("\n")
+      .filter((l) => l.trim().startsWith("|") && l.includes("|", 1))
+      .filter((l) => !/^\s*\|[\s|:-]*\|\s*$/.test(l));
+    // minus the header row
+    if (rows.length - 1 < grade.minRows) return false;
+  }
+  return true;
+}
 
 function parseArgs(argv: string[]) {
   const opts = {
     reps: 3,
     model: "claude-sonnet-5",
+    effort: "medium",
     cases: [] as string[],
-    maxTurns: 30,
+    arms: ["cli", "mcp"] as Arm[],
+    budget: 6.0,
+    timeout: 300,
     keep: false,
     out: join(HERE, "results.json"),
   };
@@ -75,8 +126,11 @@ function parseArgs(argv: string[]) {
     const a = argv[i];
     if (a === "--reps") opts.reps = Number(argv[++i]);
     else if (a === "--model") opts.model = argv[++i];
+    else if (a === "--effort") opts.effort = argv[++i];
     else if (a === "--cases") opts.cases = argv[++i].split(",").map((s) => s.trim());
-    else if (a === "--max-turns") opts.maxTurns = Number(argv[++i]);
+    else if (a === "--arms") opts.arms = argv[++i].split(",").map((s) => s.trim()) as Arm[];
+    else if (a === "--budget") opts.budget = Number(argv[++i]);
+    else if (a === "--timeout") opts.timeout = Number(argv[++i]);
     else if (a === "--keep") opts.keep = true;
     else if (a === "--out") opts.out = resolve(argv[++i]);
     else throw new Error(`unknown option: ${a}`);
@@ -109,8 +163,11 @@ function armFlags(arm: Arm): string[] {
       JSON.stringify({ mcpServers: {} }),
       // Unscoped Bash on purpose: `apollo … | jq …` pipelines are the thing being
       // measured, and a scoped Bash(apollo:*) rule rejects a pipeline outright.
+      // --allowedTools is variadic, so each name is its own argv entry.
       "--allowedTools",
-      "Bash,Skill,Read",
+      "Bash",
+      "Skill",
+      "Read",
     ];
   }
   return [
@@ -118,10 +175,14 @@ function armFlags(arm: Arm): string[] {
     "--mcp-config",
     JSON.stringify({ mcpServers: { "apollo-work": { type: "http", url: APOLLO_WORK_MCP_URL } } }),
     // Bash denied so the MCP arm cannot quietly shell out to the CLI and win on its behalf.
-    "--allowedTools",
-    "mcp__apollo-work,Read",
     "--disallowedTools",
     "Bash",
+    // ToolSearch matters here: this client defers large MCP tool sets, so the agent
+    // has to search for an apollo-work tool before it can call one.
+    "--allowedTools",
+    "mcp__apollo-work",
+    "ToolSearch",
+    "Read",
   ];
 }
 
@@ -129,19 +190,23 @@ function claude(arm: Arm, c: Case, opts: ReturnType<typeof parseArgs>): Promise<
   const cwd = makeWorkspace(arm);
   const args = [
     "-p",
-    c.prompt,
+    c.prompt + PROMPT_SUFFIX,
     "--output-format",
     "json",
     "--model",
     opts.model,
-    "--max-turns",
-    String(opts.maxTurns),
+    "--effort",
+    opts.effort,
+    "--max-budget-usd",
+    String(opts.budget),
     "--permission-mode",
     "acceptEdits",
-    // An empty settings object keeps the user's global settings, plugins and enabled
-    // MCP servers out of both arms.
-    "--settings",
-    JSON.stringify({}),
+    // Load project settings only: picks up the scratch cwd's .claude/skills (so the
+    // CLI arm actually gets the apollo-cli skill) while keeping the operator's
+    // user-level settings and globally-enabled plugins out of *both* arms. With
+    // `--setting-sources ""` the cwd skill is not discovered either.
+    "--setting-sources",
+    "project",
     ...armFlags(arm),
   ];
 
@@ -149,21 +214,32 @@ function claude(arm: Arm, c: Case, opts: ReturnType<typeof parseArgs>): Promise<
     const child = spawn("claude", args, { cwd, env: process.env });
     let stdout = "";
     let stderr = "";
+    let timedOut = false;
+    const timer = setTimeout(() => {
+      timedOut = true;
+      child.kill("SIGKILL");
+    }, opts.timeout * 1000);
     child.stdout.on("data", (d) => (stdout += d));
     child.stderr.on("data", (d) => (stderr += d));
     child.on("close", () => {
+      clearTimeout(timer);
+      const result = parseResult(stdout, stderr, arm, c, cwd);
+      if (timedOut) { result.ok = false; result.complete = false; result.error = `timed out after ${opts.timeout}s; ${result.error ?? ""}`; }
       if (!opts.keep) rmSync(cwd, { recursive: true, force: true });
-      resolveRun(parseResult(stdout, stderr, arm, c.id, cwd));
+      resolveRun(result);
     });
   });
 }
 
-function parseResult(stdout: string, stderr: string, arm: Arm, caseId: string, cwd: string): Run {
+function parseResult(stdout: string, stderr: string, arm: Arm, c: Case, cwd: string): Run {
+  const caseId = c.id;
   const empty: Run = {
     arm,
     caseId,
     rep: 0,
     ok: false,
+    complete: false,
+    resultText: "",
     inputTokens: 0,
     cacheCreationTokens: 0,
     cacheReadTokens: 0,
@@ -182,16 +258,25 @@ function parseResult(stdout: string, stderr: string, arm: Arm, caseId: string, c
   }
   if (parsed.is_error) return { ...empty, error: `claude reported an error: ${String(parsed.result).slice(0, 400)}` };
 
+  // Prefer modelUsage: top-level `usage` reports only the main model, but a run also
+  // burns tokens on Haiku side-calls (titling, quick classification). Those are real
+  // spend and appear in total_cost_usd, so they belong in the token total too.
+  const resultText = String(parsed.result ?? "");
+  const models: any[] = Object.values(parsed.modelUsage ?? {});
   const u = parsed.usage ?? {};
-  const inputTokens = u.input_tokens ?? 0;
-  const cacheCreationTokens = u.cache_creation_input_tokens ?? 0;
-  const cacheReadTokens = u.cache_read_input_tokens ?? 0;
-  const outputTokens = u.output_tokens ?? 0;
+  const sum = (k: string, fallback: number) =>
+    models.length ? models.reduce((a, m) => a + (m[k] ?? 0), 0) : fallback;
+  const inputTokens = sum("inputTokens", u.input_tokens ?? 0);
+  const cacheCreationTokens = sum("cacheCreationInputTokens", u.cache_creation_input_tokens ?? 0);
+  const cacheReadTokens = sum("cacheReadInputTokens", u.cache_read_input_tokens ?? 0);
+  const outputTokens = sum("outputTokens", u.output_tokens ?? 0);
   return {
     arm,
     caseId,
     rep: 0,
     ok: true,
+    complete: gradeComplete(resultText, c.grade),
+    resultText,
     inputTokens,
     cacheCreationTokens,
     cacheReadTokens,
@@ -228,21 +313,29 @@ async function main() {
 
   const runs: Run[] = [];
   for (const c of cases) {
-    for (const arm of ["cli", "mcp"] as Arm[]) {
+    for (const arm of opts.arms) {
       for (let rep = 1; rep <= opts.reps; rep++) {
         process.stderr.write(`→ ${c.id} / ${arm} / rep ${rep}/${opts.reps} … `);
         const run = await claude(arm, c, opts);
         run.rep = rep;
         runs.push(run);
-        process.stderr.write(run.ok ? `${fmt(run.totalTokens)} tok, ${run.numTurns} turns\n` : `FAILED: ${run.error}\n`);
+        // Flush after every run: an 18-run sweep takes over an hour, and losing the
+        // whole dataset to a kill at run 17 is not an acceptable failure mode.
+        writeFileSync(opts.out, JSON.stringify({ opts, runs }, null, 2));
+        process.stderr.write(
+          !run.ok
+            ? `FAILED: ${run.error}\n`
+            : `${fmt(run.totalTokens)} tok, ${run.numTurns} turns${run.complete ? "" : "  [INCOMPLETE — excluded]"}\n`,
+        );
       }
     }
   }
 
   const failed = runs.filter((r) => !r.ok);
+  const incomplete = runs.filter((r) => r.ok && !r.complete);
   const perCase = cases.map((c) => {
     const pick = (arm: Arm, key: keyof Usage) =>
-      median(runs.filter((r) => r.ok && r.caseId === c.id && r.arm === arm).map((r) => r[key] as number));
+      median(runs.filter((r) => r.complete && r.caseId === c.id && r.arm === arm).map((r) => r[key] as number));
     return {
       id: c.id,
       name: c.name,
@@ -255,8 +348,19 @@ async function main() {
   const lines: string[] = [];
   lines.push(`# Apollo CLI vs MCP — token efficiency`);
   lines.push("");
-  lines.push(`Model \`${opts.model}\` · ${opts.reps} reps per arm per case (median reported) · turn cap ${opts.maxTurns}`);
-  if (failed.length) lines.push(`\n**${failed.length} run(s) failed** — see \`${opts.out}\`. Medians below exclude them.`);
+  lines.push(`Model \`${opts.model}\` · ${opts.reps} reps per arm per case (median reported) · effort ${opts.effort} · $${opts.budget.toFixed(2)} budget cap per run`);
+  if (failed.length) lines.push(`\n**${failed.length} run(s) errored or timed out** — see \`${opts.out}\`. Excluded from medians.`);
+  if (incomplete.length)
+    lines.push(
+      `\n**${incomplete.length} run(s) ran but did not complete the task** (failed the case's completion gate — ` +
+        `e.g. stopped to ask for confirmation). Excluded from medians; a bailed-out run must never be scored as cheap.`,
+    );
+  for (const c of cases) {
+    for (const arm of ["cli", "mcp"] as Arm[]) {
+      const n = runs.filter((r) => r.complete && r.caseId === c.id && r.arm === arm).length;
+      if (n < 2) lines.push(`\n> ⚠️ \`${c.id}\` / ${arm}: only ${n} of ${opts.reps} reps completed — median is not meaningful.`);
+    }
+  }
   lines.push("");
   lines.push(`| Case | Shape | MCP tokens | CLI tokens | CLI saves | MCP turns | CLI turns |`);
   lines.push(`|---|---|---:|---:|---:|---:|---:|`);
