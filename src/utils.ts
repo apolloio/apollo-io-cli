@@ -41,6 +41,14 @@ export function parseDepartmentHeadcounts(entries: string[]): Record<string, { m
   return result;
 }
 
+// Flattens a variadic id option so several ids packed into one argument
+// (`--contact-id "id1 id2"`, or a comma-separated list) still reach the API as
+// separate ids. Apollo treats the packed string as one unknown id, matches
+// nothing, and answers 200 — a silent no-op rather than an error.
+export function normalizeIds(values: string[]): string[] {
+  return values.flatMap((value) => value.split(/[\s,]+/)).filter((value) => value.length > 0);
+}
+
 // Reads a JSON file that contains either a bare array or `{ "<wrapperKey>": [...] }`.
 export async function readJsonArrayFile(path: string, wrapperKey: string): Promise<unknown[]> {
   const fs = await import('node:fs/promises');

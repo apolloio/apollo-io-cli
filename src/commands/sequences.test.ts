@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { buildSequenceCreateBody, buildSequenceUpdateBody } from './sequences.js';
+import { buildSequenceCreateBody, buildSequenceUpdateBody, summarizeAddContacts } from './sequences.js';
 
 const STEPS = [{ position: 1, type: 'auto_email' }];
 
@@ -50,5 +50,22 @@ describe('buildSequenceUpdateBody', () => {
   it('--active sets active true; --inactive sets active false', () => {
     expect(buildSequenceUpdateBody({ id: 's', stepsFile: 'x', active: true }, STEPS).active).toBe(true);
     expect(buildSequenceUpdateBody({ id: 's', stepsFile: 'x', inactive: true }, STEPS).active).toBe(false);
+  });
+});
+
+describe('summarizeAddContacts', () => {
+  it('counts the contacts that were enrolled', () => {
+    expect(summarizeAddContacts({ contacts: [{ id: 'c1' }, { id: 'c2' }], skipped_contact_ids: {} }))
+      .toEqual({ added: 2, skipped: [] });
+  });
+
+  it('reports the ids the API skipped', () => {
+    expect(summarizeAddContacts({ contacts: [], skipped_contact_ids: { c1: 'contact_not_found' } }))
+      .toEqual({ added: 0, skipped: [['c1', 'contact_not_found']] });
+  });
+
+  it('treats a response without contacts as nothing enrolled', () => {
+    expect(summarizeAddContacts({})).toEqual({ added: 0, skipped: [] });
+    expect(summarizeAddContacts(null)).toEqual({ added: 0, skipped: [] });
   });
 });
