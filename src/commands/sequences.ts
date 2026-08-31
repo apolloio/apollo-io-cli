@@ -1,7 +1,7 @@
 import type { Command } from 'commander';
 import { apolloGet, apolloRequest } from '../api.js';
 import { print, FORMAT_OPTION } from '../output.js';
-import { parsePageOptions } from '../utils.js';
+import { normalizeIds, parsePageOptions } from '../utils.js';
 
 interface SequenceSearchOptions {
   query?: string;
@@ -115,6 +115,21 @@ export function buildSequenceUpdateBody(
   return body;
 }
 
+// add_contact_ids answers 200 even when it enrolled nobody: ids it could not
+// match come back under skipped_contact_ids while the campaign stays empty.
+// Reads how many contacts actually went in and which ids were dropped. Pure.
+export function summarizeAddContacts(data: unknown): { added: number; skipped: [string, string][] } {
+  const body = (data ?? {}) as {
+    contacts?: unknown;
+    skipped_contact_ids?: Record<string, unknown>;
+  };
+  const added = Array.isArray(body.contacts) ? body.contacts.length : 0;
+  const skipped = Object.entries(body.skipped_contact_ids ?? {}).map(
+    ([id, reason]) => [id, String(reason)] as [string, string],
+  );
+  return { added, skipped };
+}
+
 export function registerSequences(program: Command): void {
   const seq = program.command('sequences').description('Manage sequences: search, create/update, approve, schedules, and add/remove contacts');
 
@@ -158,13 +173,13 @@ export function registerSequences(program: Command): void {
         console.error('Error: provide --contact-id or --label');
         process.exit(1);
       }
-      const senders = opts.fromEmailAccount;
+      const senders = normalizeIds(opts.fromEmailAccount);
       const body: Record<string, unknown> = {
         id: opts.id,
         emailer_campaign_id: opts.id,
         send_email_from_email_account_id: senders.length === 1 ? senders[0] : senders,
       };
-      if (opts.contactId) body.contact_ids = opts.contactId;
+      if (opts.contactId) body.contact_ids = normalizeIds(opts.contactId);
       if (opts.label) body.label_names = opts.label;
       if (opts.fromEmail) body.send_email_from_email_address = opts.fromEmail;
       if (opts.email === false) body.sequence_no_email = true;
@@ -180,6 +195,17 @@ export function registerSequences(program: Command): void {
       if (opts.autoUnpauseAt) body.auto_unpause_at = opts.autoUnpauseAt;
       const data = await apolloRequest(`/emailer_campaigns/${opts.id}/add_contact_ids`, body);
       print(data, opts.format);
+      const { added, skipped } = summarizeAddContacts(data);
+      for (const [id, reason] of skipped) {
+        console.error(`Warning: contact ${id} was not enrolled (${reason})`);
+      }
+      if (added === 0 && skipped.length > 0) {
+        console.error('Error: no contacts were enrolled — the sequence is unchanged.');
+        process.exit(1);
+      }
+      if (added === 0) {
+        console.error('Warning: no contacts matched, so none were enrolled.');
+      }
     });
 
   seq
@@ -192,8 +218,8 @@ export function registerSequences(program: Command): void {
     .option(...FORMAT_OPTION)
     .action(async (opts: SequenceRemoveContactsOptions) => {
       const body: Record<string, unknown> = {
-        contact_ids: opts.contactId,
-        emailer_campaign_ids: opts.sequenceId,
+        contact_ids: normalizeIds(opts.contactId),
+        emailer_campaign_ids: normalizeIds(opts.sequenceId),
         mode: opts.mode,
       };
       if (opts.reason) body.stop_reason = opts.reason;

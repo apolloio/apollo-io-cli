@@ -1,7 +1,10 @@
 import type { Command } from 'commander';
 import { apolloGet, apolloRequest } from '../api.js';
 import { print, FORMAT_OPTION } from '../output.js';
-import { parsePageOptions, parseRange, parseDepartmentHeadcounts } from '../utils.js';
+import { parsePageOptions, parseRange, parseDepartmentHeadcounts, readJsonArrayFile } from '../utils.js';
+
+// /people/bulk_match rejects anything larger with 400 RECORD_LIMIT_EXCEEDED.
+const BULK_ENRICH_MAX_RECORDS = 10;
 
 interface PeopleSearchOptions {
   query?: string;
@@ -189,29 +192,27 @@ export function registerPeople(program: Command): void {
 
   people
     .command('bulk-enrich')
-    .description('Enrich multiple people by email or full identifier records')
-    .option('--emails <emails...>', 'Email addresses to enrich')
-    .option('--file <path>', 'Path to JSON file with an array of match records (or { "details": [...] })')
+    .description(`Enrich multiple people by email or full identifier records (max ${BULK_ENRICH_MAX_RECORDS} per call)`)
+    .option('--emails <emails...>', `Email addresses to enrich (max ${BULK_ENRICH_MAX_RECORDS})`)
+    .option('--file <path>', `Path to JSON file with an array of at most ${BULK_ENRICH_MAX_RECORDS} match records (or { "details": [...] })`)
     .option('--reveal-personal-emails', 'Reveal personal emails (consumes credits)')
     .option(...FORMAT_OPTION)
     .action(async (opts: PeopleBulkEnrichOptions) => {
       let details: unknown[];
       if (opts.file) {
-        const fs = await import('node:fs/promises');
-        const text = await fs.readFile(opts.file, 'utf8');
-        const parsed: unknown = JSON.parse(text);
-        const arr = Array.isArray(parsed)
-          ? parsed
-          : (parsed as { details?: unknown }).details;
-        if (!Array.isArray(arr)) {
-          console.error('Error: file must contain a JSON array of match records (or { "details": [...] })');
-          process.exit(1);
-        }
-        details = arr;
+        details = await readJsonArrayFile(opts.file, 'details');
       } else if (opts.emails) {
         details = opts.emails.map(email => ({ email }));
       } else {
         console.error('Error: provide --emails or --file');
+        process.exit(1);
+      }
+
+      if (details.length > BULK_ENRICH_MAX_RECORDS) {
+        console.error(
+          `Error: bulk-enrich accepts at most ${BULK_ENRICH_MAX_RECORDS} records per call, got ${details.length}. ` +
+          `Split the input into batches of ${BULK_ENRICH_MAX_RECORDS} and call bulk-enrich once per batch.`,
+        );
         process.exit(1);
       }
 
