@@ -30,7 +30,10 @@ const SCOPES = [
   'notes_list',
   'conversations_search', 'conversations_show', 'conversations_export', 'conversations_find_export',
   'webhook_result_read', 'api_usage_stats_read',
-  'report_sync', 'credit_usage_stats_read',
+  // report_sync, credit_usage_stats_read: temporarily removed 2026-09-04, Apollo's OAuth
+  // dynamic-client-registration endpoint rejects the whole scope set with invalid_scope
+  // when these are included -- likely not yet live on the backend's scope validator despite
+  // being in this CLI release. Re-add once confirmed live upstream.
   // NOTE: `contacts deals` (api/v1/contacts/opportunities) and `emails stats`
   // (api/v1/emailer_messages/:id/activities) were removed from the CLI rather than left
   // permanently broken: both endpoints have NO entry at all in Apollo's ENDPOINT_SCOPE_MAP
@@ -134,9 +137,16 @@ export async function revokeToken(accessToken: string, clientId: string): Promis
 }
 
 function openBrowser(url: string): void {
+  // cmd.exe's `start` re-parses its argument line and treats an unescaped `&`
+  // as a command separator, even when the URL arrives as its own array element --
+  // silently truncating the OAuth authorize URL at the first `&` (query params
+  // after client_id, including redirect_uri, never reach the browser). Escaping
+  // `&` as `^&` is cmd's own escape sequence and is the documented fix
+  // (apolloio/apollo-io-cli#46).
+  const winUrl = url.replace(/&/g, '^&');
   const result =
     process.platform === 'darwin' ? spawnSync('open', [url]) :
-    process.platform === 'win32'  ? spawnSync('cmd', ['/c', 'start', '', url]) :
+    process.platform === 'win32'  ? spawnSync('cmd', ['/c', 'start', '', winUrl]) :
                                     spawnSync('xdg-open', [url]);
   if (result.error || result.status !== 0) {
     console.log(`\nCould not open browser automatically. Visit:\n${url}\n`);
