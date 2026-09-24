@@ -702,3 +702,7 @@ apollo companies jobs --id abc123 \
 apollo companies search --industry SaaS --funding "5000000,20000000" --location "United States" \
   | jq '.accounts[].primary_domain'
 ```
+
+## Contributing
+
+See [CONTRIBUTING.md](CONTRIBUTING.md) for how to add a new command, test it, and open a PR.
