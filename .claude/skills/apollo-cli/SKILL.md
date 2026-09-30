@@ -269,7 +269,7 @@ apollo labels remove --ids <id1> --names "Conference 2026" --modality contacts
 ```bash
 apollo fields list                       # all fields; optional --source
 apollo fields custom                     # custom (typed) fields -> IDs for typed_custom_fields payloads
-apollo fields create --label "Renewal Date" --modality contact --type date   # modality: contact|account|opportunity
+apollo fields create --label "Renewal Date" --modality contact --type date   # modality: contact|account|opportunity -> .fields[0].id is the bare id for typed_custom_fields
 ```
 
 ---
