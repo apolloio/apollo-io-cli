@@ -15,6 +15,23 @@ interface FieldsCreateOptions {
   format?: string;
 }
 
+// POST /fields returns FieldTaxonomy ids ("contact.6a95…"), but typed_custom_fields writes and
+// `fields custom` use the bare 24-hex id — a prefixed key is rejected or silently ignored.
+// Rewrite custom-field ids to the bare form so create output can be piped straight into a write.
+export function withBareCustomFieldIds(data: unknown): unknown {
+  if (!data || typeof data !== 'object') return data;
+  const bare = (field: unknown): unknown => {
+    if (!field || typeof field !== 'object') return field;
+    const f = field as Record<string, unknown>;
+    const match = typeof f.id === 'string' ? /^[^.]+\.([a-f0-9]{24})$/.exec(f.id) : null;
+    return match ? { ...f, id: match[1] } : f;
+  };
+  const d = { ...(data as Record<string, unknown>) };
+  if (Array.isArray(d.fields)) d.fields = d.fields.map(bare);
+  if (d.field) d.field = bare(d.field);
+  return d;
+}
+
 export function registerFields(program: Command): void {
   const fields = program.command('fields').description('List and create fields (including custom fields)');
 
@@ -44,7 +61,7 @@ export function registerFields(program: Command): void {
       };
       if (opts.maxLength !== undefined) body.meta = { max_length: Number(opts.maxLength) };
       const data = await apolloRequest('/fields', body);
-      print(data, opts.format);
+      print(withBareCustomFieldIds(data), opts.format);
     });
 
   fields
