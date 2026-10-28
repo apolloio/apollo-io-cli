@@ -139,7 +139,16 @@ export function buildPeopleSearchBody(opts: PeopleSearchOptions): Record<string,
 }
 
 // Maps the reveal, waterfall, and result-delivery flags shared by people enrich and bulk-enrich.
+// Phone reveal and waterfall results arrive async, so they need exactly one of --webhook-url or --poll-only.
 export function buildRevealFlags(opts: RevealOptions): Record<string, unknown> {
+  if (opts.webhookUrl && opts.pollOnly) {
+    console.error('Error: use --webhook-url or --poll-only, not both');
+    process.exit(1);
+  }
+  if ((opts.revealPhoneNumber || opts.runWaterfallEmail || opts.runWaterfallPhone) && !opts.webhookUrl && !opts.pollOnly) {
+    console.error('Error: --reveal-phone-number, --run-waterfall-email and --run-waterfall-phone need --webhook-url or --poll-only');
+    process.exit(1);
+  }
   const flags: Record<string, unknown> = {};
   if (opts.revealPersonalEmails) flags.reveal_personal_emails = true;
   if (opts.revealPhoneNumber) flags.reveal_phone_number = true;

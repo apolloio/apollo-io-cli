@@ -1,4 +1,4 @@
-import { describe, it, expect } from 'vitest';
+import { describe, it, expect, vi } from 'vitest';
 import { buildFieldsUpdateBody } from './fields.js';
 
 describe('buildFieldsUpdateBody', () => {
@@ -21,5 +21,20 @@ describe('buildFieldsUpdateBody', () => {
     expect(buildFieldsUpdateBody({ id: 'account.1', maxLength: '240' }, meta).fields).toEqual([
       { id: 'account.1', meta: { picklist_values: picklist, max_length: 240 } },
     ]);
+  });
+
+  it('exits instead of sending an update with only the id', () => {
+    const exit = vi.spyOn(process, 'exit').mockImplementation(() => {
+      throw new Error('process.exit');
+    });
+    const error = vi.spyOn(console, 'error').mockImplementation(() => {});
+    try {
+      expect(() => buildFieldsUpdateBody({ id: 'contact.1' })).toThrow('process.exit');
+      expect(exit).toHaveBeenCalledWith(1);
+      expect(error).toHaveBeenCalledWith(expect.stringContaining('nothing to update'));
+    } finally {
+      exit.mockRestore();
+      error.mockRestore();
+    }
   });
 });

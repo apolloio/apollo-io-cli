@@ -166,4 +166,24 @@ describe('buildRevealFlags', () => {
     });
     expect(buildRevealFlags({})).toEqual({});
   });
+
+  it.each([
+    [{ revealPhoneNumber: true }, 'need --webhook-url or --poll-only'],
+    [{ runWaterfallEmail: true }, 'need --webhook-url or --poll-only'],
+    [{ runWaterfallPhone: true }, 'need --webhook-url or --poll-only'],
+    [{ pollOnly: true, webhookUrl: 'https://example.com/hook' }, 'not both'],
+  ])('exits instead of sending async flags with no single delivery target: %o', (opts, message) => {
+    const exit = vi.spyOn(process, 'exit').mockImplementation(() => {
+      throw new Error('process.exit');
+    });
+    const error = vi.spyOn(console, 'error').mockImplementation(() => {});
+    try {
+      expect(() => buildRevealFlags(opts)).toThrow('process.exit');
+      expect(exit).toHaveBeenCalledWith(1);
+      expect(error).toHaveBeenCalledWith(expect.stringContaining(message));
+    } finally {
+      exit.mockRestore();
+      error.mockRestore();
+    }
+  });
 });

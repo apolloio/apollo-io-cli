@@ -30,6 +30,10 @@ export function buildFieldsUpdateBody(
   opts: FieldsUpdateOptions,
   meta?: Record<string, unknown>,
 ): Record<string, unknown> {
+  if (!opts.label && !opts.fieldGroupId && opts.maxLength === undefined && !meta) {
+    console.error('Error: nothing to update, pass --label, --field-group-id, --max-length or --meta-file');
+    process.exit(1);
+  }
   const field: Record<string, unknown> = { id: opts.id };
   if (opts.label) field.label = opts.label;
   if (opts.fieldGroupId) field.field_group_id = opts.fieldGroupId;
@@ -77,7 +81,7 @@ export function registerFields(program: Command): void {
     .option('--label <label>', 'New field name')
     .option('--field-group-id <id>', 'Move the field into this field group (folder)')
     .option('--max-length <n>', 'New maximum length (for text fields)')
-    .option('--meta-file <path>', 'Path to a JSON file with the field `meta` object (e.g. { "picklist_values": [...] })')
+    .option('--meta-file <path>', 'Path to a JSON file with the field `meta` object (e.g. { "picklist_values": [...] }). Picklist fields: every update, even a rename, must include the full picklist_values; options left out are removed')
     .option(...FORMAT_OPTION)
     .action(async (opts: FieldsUpdateOptions) => {
       let meta: Record<string, unknown> | undefined;
