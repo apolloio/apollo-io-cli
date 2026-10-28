@@ -7,11 +7,23 @@ interface CompaniesSearchOptions {
   query?: string;
   name?: string;
   domains?: string[];
+  notDomains?: string[];
   organizationIds?: string[];
+  lookalikeIds?: string[];
   location?: string[];
   notLocation?: string[];
   employees?: string;
+  headcountGrowth?: string;
+  headcountGrowthMonths?: string;
   industry?: string[];
+  notKeywordTags?: string[];
+  industryIds?: string[];
+  notIndustryIds?: string[];
+  industryName?: string[];
+  naics?: string[];
+  notNaics?: string[];
+  sic?: string[];
+  notSic?: string[];
   technology?: string[];
   revenue?: string;
   funding?: string;
@@ -67,12 +79,24 @@ export function buildCompaniesSearchBody(opts: CompaniesSearchOptions): Record<s
 
   if (opts.industry) body.q_organization_keyword_tags = opts.industry;
   else if (opts.query) body.q_organization_keyword_tags = [opts.query];
+  if (opts.notKeywordTags) body.q_not_organization_keyword_tags = opts.notKeywordTags;
+  if (opts.industryIds) body.organization_industry_tag_ids = opts.industryIds;
+  if (opts.notIndustryIds) body.organization_not_industry_tag_ids = opts.notIndustryIds;
+  if (opts.industryName) body.organization_industries = opts.industryName;
+  if (opts.naics) body.organization_naics_codes = opts.naics;
+  if (opts.notNaics) body.not_organization_naics_codes = opts.notNaics;
+  if (opts.sic) body.organization_sic_codes = opts.sic;
+  if (opts.notSic) body.not_organization_sic_codes = opts.notSic;
   if (opts.name) body.q_organization_name = opts.name;
   if (opts.domains) body.q_organization_domains_list = opts.domains;
+  if (opts.notDomains) body.not_organization_websites_list = opts.notDomains;
   if (opts.organizationIds) body.organization_ids = opts.organizationIds;
+  if (opts.lookalikeIds) body.lookalike_organization_ids = opts.lookalikeIds;
   if (opts.location) body.organization_locations = opts.location;
   if (opts.notLocation) body.organization_not_locations = opts.notLocation;
   if (opts.employees) body.organization_num_employees_ranges = [opts.employees];
+  if (opts.headcountGrowth) body.organization_headcount_growth_range = parseRange(opts.headcountGrowth);
+  if (opts.headcountGrowthMonths) body.organization_headcount_growth_past_n_months = Number(opts.headcountGrowthMonths);
   if (opts.technology) body.currently_using_any_of_technology_uids = opts.technology;
   if (opts.revenue) body.revenue_range = parseRange(opts.revenue);
   if (opts.funding) body.latest_funding_amount_range = parseRange(opts.funding);
@@ -95,11 +119,23 @@ export function registerCompanies(program: Command): void {
     .option('-q, --query <query>', 'Keyword query')
     .option('--name <name>', 'Filter by organization name')
     .option('--domains <domains...>', 'Company domain(s) to filter by')
+    .option('--not-domains <domains...>', 'Company domain(s) to exclude')
     .option('--organization-ids <ids...>', 'Apollo organization ID(s) to restrict to')
+    .option('--lookalike-ids <ids...>', 'Apollo organization ID(s) to use as lookalike seeds (results ranked by similarity)')
     .option('--location <locations...>', 'Location(s) to filter by')
     .option('--not-location <locations...>', 'Location(s) to exclude')
     .option('--employees <range>', 'Employee range (e.g. "1,10" or "11,50")')
+    .option('--headcount-growth <range>', 'Headcount growth in percent as "min,max" (e.g. "10,100"; requires --headcount-growth-months)')
+    .option('--headcount-growth-months <n>', 'Window for --headcount-growth: 6, 12, or 24 months')
     .option('--industry <tags...>', 'Industry keyword tag(s)')
+    .option('--not-keyword-tags <tags...>', 'Exclude companies with any of these keyword tag(s)')
+    .option('--industry-ids <tagIds...>', 'Industry tag ID(s) (opaque IDs like 5567cd4773696439b10b0000)')
+    .option('--not-industry-ids <tagIds...>', 'Exclude companies in these industry tag ID(s)')
+    .option('--industry-name <names...>', 'Industry name(s), exact Apollo spelling (e.g. "information technology & services")')
+    .option('--naics <codes...>', 'NAICS code(s), prefix or range match (e.g. 5415 or 31-33)')
+    .option('--not-naics <codes...>', 'Exclude companies with these NAICS code(s)')
+    .option('--sic <codes...>', 'SIC code(s), prefix match (e.g. 7372)')
+    .option('--not-sic <codes...>', 'Exclude companies with these SIC code(s)')
     .option('--technology <techs...>', 'Technology UIDs in use')
     .option('--revenue <range>', 'Revenue range as "min,max" (e.g. "1000000,5000000")')
     .option('--funding <range>', 'Latest funding amount as "min,max"')

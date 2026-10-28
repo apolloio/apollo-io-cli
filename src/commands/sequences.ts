@@ -55,6 +55,9 @@ interface SequenceUpdateOptions {
   name?: string;
   scheduleId?: string;
   permissions?: string;
+  visibility?: string;
+  accessType?: string;
+  ownerId?: string;
   exactDaytime?: boolean;
   active?: boolean;
   inactive?: boolean;
@@ -64,6 +67,13 @@ interface SequenceUpdateOptions {
 
 interface SequenceApproveOptions {
   id: string;
+  format?: string;
+}
+
+interface SequenceActivityOptions {
+  contactId: string;
+  sequenceId?: string;
+  perPage?: string;
   format?: string;
 }
 
@@ -107,6 +117,13 @@ export function buildSequenceUpdateBody(
   const body: Record<string, unknown> = { emailer_steps: steps };
   if (opts.name) body.name = opts.name;
   if (opts.permissions) body.permissions = opts.permissions;
+  if (opts.visibility || opts.accessType) {
+    const sharing: Record<string, string> = {};
+    if (opts.visibility) sharing.visibility = opts.visibility;
+    if (opts.accessType) sharing.access_type = opts.accessType;
+    body.sharing_permission = sharing;
+  }
+  if (opts.ownerId) body.user_id = opts.ownerId;
   if (opts.scheduleId) body.emailer_schedule_id = opts.scheduleId;
   if (opts.exactDaytime) body.sequence_by_exact_daytime = true;
   if (opts.active) body.active = true;
@@ -225,7 +242,10 @@ export function registerSequences(program: Command): void {
     .requiredOption('--steps-file <path>', 'Path to JSON file with the FULL ordered emailer_steps after the update')
     .option('--name <name>', 'New sequence name')
     .option('--schedule-id <id>', 'New EmailerSchedule ID')
-    .option('--permissions <perm>', 'New sharing permission')
+    .option('--permissions <perm>', 'Legacy sharing permission (deprecated: use --visibility and --access-type)')
+    .option('--visibility <visibility>', 'Who can access the sequence: everyone (whole team) or restricted (owner and shared users)')
+    .option('--access-type <type>', 'Team access level when --visibility is everyone: can_view, can_edit, or full_access')
+    .option('--owner-id <id>', 'Reassign the sequence to this Apollo user ID (see `users search`)')
     .option('--exact-daytime', 'Switch to exact-datetime mode')
     .option('--active', 'Activate the sequence as part of the update')
     .option('--inactive', 'Deactivate the sequence as part of the update')
@@ -268,6 +288,21 @@ export function registerSequences(program: Command): void {
     .option(...FORMAT_OPTION)
     .action(async (opts: SequenceApproveOptions) => {
       const data = await apolloRequest(`/emailer_campaigns/${opts.id}/archive`, {});
+      print(data, opts.format);
+    });
+
+  seq
+    .command('activity')
+    .description("Get a contact's sequence activity (enrolled, paused, replied, etc.), newest first")
+    .requiredOption('--contact-id <id>', 'Apollo contact ID')
+    .option('--sequence-id <id>', 'Only return events from this sequence')
+    .option('--per-page <n>', 'Maximum number of events to return, 1-50 (default: 50)')
+    .option(...FORMAT_OPTION)
+    .action(async (opts: SequenceActivityOptions) => {
+      const body: Record<string, unknown> = { contact_id: opts.contactId };
+      if (opts.sequenceId) body.sequence_id = opts.sequenceId;
+      if (opts.perPage !== undefined) body.per_page = Number(opts.perPage);
+      const data = await apolloRequest('/emailer_campaigns/activity_feed', body);
       print(data, opts.format);
     });
 

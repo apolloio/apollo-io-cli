@@ -72,6 +72,8 @@ apollo auth whoami   # confirm you're logged in
 apollo auth logout   # revoke token and remove saved credentials
 ```
 
+After you upgrade the CLI, run `apollo auth login` again. New commands can need OAuth scopes that your saved token doesn't have yet, and the API rejects those calls with `403` until you log in again.
+
 ## Commands
 
 ### `apollo people`
@@ -91,14 +93,25 @@ apollo people search --title CTO --employees "51,200" --hiring-for "Software Eng
 
 # Find founders whose company has almost no sales team (0-2 people in sales):
 apollo people search --title Founder --department-headcount "master_sales:0,2"
+
+# Exclude titles and companies, filter by NAICS code and headcount growth:
+apollo people search --title "Head of Sales" --not-title intern --naics 5415 \
+  --headcount-growth "20,100" --headcount-growth-months 12 --not-domain apollo.io
+
+# People at companies similar to a seed company:
+apollo people search --title CTO --lookalike-ids 5e66b6381e05b4008c8331b8
 ```
 
 | Option | Description |
 |---|---|
 | `-q, --query` | Name or keyword query |
+| `--name` | Person's name; matches people whose name contains all the words |
 | `--title` | Job title(s) |
+| `--not-title` | Exclude people whose current job title matches any of these |
+| `--not-past-title` | Exclude people who held any of these job titles in a previous role |
 | `--include-similar-titles` | Also match titles similar to `--title` (fuzzy instead of strict) |
 | `--city` | Person location(s) (city, state, country) |
+| `--not-city` | Exclude people by their location(s): cities, states, countries, or postal codes |
 | `--seniority` | Seniority level(s): `manager` `director` `vp` `c_suite` etc. |
 | `--department` | Department(s): `engineering` `sales` `marketing` etc. |
 | `--email-status` | Contact email status(es): `verified` `unverified` etc. |
@@ -106,11 +119,20 @@ apollo people search --title Founder --department-headcount "master_sales:0,2"
 | `--using-all-technology` | Technology UIDs the company uses (all of) |
 | `--not-using-technology` | Technology UIDs the company does NOT use |
 | `--domain` | Company domain(s) |
+| `--not-domain` | Exclude people whose company matches any of these domain(s) |
 | `--industry` | Industry tag ID(s) — opaque IDs like `5567cd4773696439b10b0000`, not free-text names |
+| `--not-industry` | Exclude companies in these industry tag ID(s) |
+| `--industry-name` | Industry name(s) in Apollo's exact lowercase spelling, e.g. `"information technology & services"` |
+| `--naics` / `--not-naics` | Include or exclude company NAICS code(s); prefix or range match, e.g. `5415` or `31-33` |
+| `--sic` / `--not-sic` | Include or exclude company SIC code(s); prefix match, e.g. `7372` |
 | `--keyword-tags` | Free-text keyword tag(s) for the person's company |
 | `--organization-ids` | Apollo organization ID(s) to restrict to |
+| `--lookalike-ids` | Apollo organization ID(s) to use as lookalike seeds: returns people at similar companies, not at the seeds |
 | `--company-location` | Person's company HQ location(s) |
+| `--not-company-location` | Exclude people by their company's HQ location(s) |
 | `--employees` | Company employee range, e.g. `"11,50"` or `"51,200"` |
+| `--headcount-growth` | Company headcount growth in percent as `"min,max"`, e.g. `"10,100"`. Requires `--headcount-growth-months` |
+| `--headcount-growth-months` | Window for `--headcount-growth`: `6`, `12`, or `24` |
 | `--hiring-for` | People whose company is currently hiring for job title(s) |
 | `--job-locations` | Locations the person's company is hiring in |
 | `--num-jobs` | Number of open jobs at the company as `"min,max"` |
@@ -135,6 +157,10 @@ apollo people enrich --email jane@acme.com
 apollo people enrich --linkedin https://linkedin.com/in/janedoe
 apollo people enrich --first-name Jane --last-name Doe --company "Acme"
 apollo people enrich --name "Jane Doe" --domain acme.com --reveal-personal-emails
+
+# Phone numbers arrive asynchronously. Poll for them with the returned request_id:
+apollo people enrich --email jane@acme.com --reveal-phone-number --poll-only
+apollo webhooks result --request-id <request_id>
 ```
 
 | Option | Description |
@@ -148,6 +174,11 @@ apollo people enrich --name "Jane Doe" --domain acme.com --reveal-personal-email
 | `--company` | Company name (use with `--name` or `--first-name`/`--last-name`) |
 | `--domain` | Company domain (e.g. `acme.com`) |
 | `--reveal-personal-emails` | Reveal personal emails (consumes credits) |
+| `--reveal-phone-number` | Reveal phone numbers, including mobile (consumes credits). Delivered asynchronously: use `--poll-only` or `--webhook-url` |
+| `--run-waterfall-email` | Run email waterfall enrichment (consumes credits). Delivered asynchronously |
+| `--run-waterfall-phone` | Run phone waterfall enrichment (consumes credits). Delivered asynchronously |
+| `--webhook-url` | Webhook URL that receives phone and waterfall results |
+| `--poll-only` | Get phone and waterfall results by polling instead of a webhook: pass the returned `request_id` to `apollo webhooks result` |
 
 #### `bulk-enrich`
 
@@ -163,6 +194,11 @@ apollo people bulk-enrich --file people.json --reveal-personal-emails
 | `--emails` | Email addresses to enrich |
 | `--file` | Path to a JSON file with an array of match records (or `{ "details": [...] }`) — each record may include `first_name`, `last_name`, `name`, `email`, `domain`, `organization_name`, `id`, `linkedin_url` |
 | `--reveal-personal-emails` | Reveal personal emails (consumes credits) |
+| `--reveal-phone-number` | Reveal phone numbers, including mobile (consumes credits). Delivered asynchronously: use `--poll-only` or `--webhook-url` |
+| `--run-waterfall-email` | Run email waterfall enrichment (consumes credits). Delivered asynchronously |
+| `--run-waterfall-phone` | Run phone waterfall enrichment (consumes credits). Delivered asynchronously |
+| `--webhook-url` | Webhook URL that receives phone and waterfall results |
+| `--poll-only` | Get phone and waterfall results by polling instead of a webhook: pass the returned `request_id` to `apollo webhooks result` |
 
 #### `email`
 
@@ -202,6 +238,8 @@ Search Apollo's database for companies.
 apollo companies search --industry SaaS --employees "11,50" --location "United States"
 apollo companies search --technology react --not-location China --per-page 25
 apollo companies search --funding "1000000,10000000"
+apollo companies search --naics 5415 --not-keyword-tags staffing --headcount-growth "10,100" --headcount-growth-months 6
+apollo companies search --lookalike-ids 5e66b6381e05b4008c8331b8 --not-domains competitor.com
 ```
 
 | Option | Description |
@@ -209,11 +247,20 @@ apollo companies search --funding "1000000,10000000"
 | `-q, --query` | Keyword query |
 | `--name` | Filter by organization name |
 | `--domains` | Company domain(s) to filter by |
+| `--not-domains` | Company domain(s) to exclude |
 | `--organization-ids` | Apollo organization ID(s) to restrict to |
+| `--lookalike-ids` | Apollo organization ID(s) to use as lookalike seeds; results are ranked by similarity and exclude the seeds |
 | `--location` | Location(s) to include |
 | `--not-location` | Location(s) to exclude |
 | `--employees` | Employee range as `"min,max"` (e.g. `"11,50"`) |
+| `--headcount-growth` | Headcount growth in percent as `"min,max"`, e.g. `"10,100"`. Requires `--headcount-growth-months` |
+| `--headcount-growth-months` | Window for `--headcount-growth`: `6`, `12`, or `24` |
 | `--industry` | Industry keyword tag(s) |
+| `--not-keyword-tags` | Exclude companies with any of these keyword tag(s) |
+| `--industry-ids` / `--not-industry-ids` | Include or exclude industry tag ID(s), e.g. `5567cd4773696439b10b0000` |
+| `--industry-name` | Industry name(s) in Apollo's exact lowercase spelling, e.g. `"information technology & services"` |
+| `--naics` / `--not-naics` | Include or exclude NAICS code(s); prefix or range match, e.g. `5415` or `31-33` |
+| `--sic` / `--not-sic` | Include or exclude SIC code(s); prefix match, e.g. `7372` |
 | `--technology` | Technology UIDs in use |
 | `--revenue` | Revenue range as `"min,max"` |
 | `--funding` | Latest funding amount as `"min,max"` |
@@ -367,6 +414,8 @@ apollo sequences update --id <seq-id> --steps-file ./steps.json --active
 apollo sequences approve --id <seq-id>
 apollo sequences add-contacts --id <seq-id> --from-email-account <email-account-id> --contact-id <contact-id>
 apollo sequences remove-contacts --contact-id <id> --sequence-id <seq-id> --mode remove
+apollo sequences update --id <seq-id> --steps-file ./steps.json --visibility everyone --access-type can_view
+apollo sequences activity --contact-id <contact-id> --sequence-id <seq-id>
 ```
 
 | Subcommand | Notes |
@@ -374,12 +423,13 @@ apollo sequences remove-contacts --contact-id <id> --sequence-id <seq-id> --mode
 | `search` | `-q/--query` matches sequence names; paging supported. |
 | `schedules` | Lists sending schedules; use a returned id as `--schedule-id` on create/update. |
 | `create` | Required: `--name`, `--steps-file` (JSON `emailer_steps`). Optional: `--schedule-id`, `--permissions`, `--exact-daytime`, `--active`, `--label`. |
-| `update` | Required: `--id`, `--steps-file` (the FULL step set after update). Optional: `--name`, `--schedule-id`, `--permissions`, `--exact-daytime`, `--active`/`--inactive`, `--label`. |
+| `update` | Required: `--id`, `--steps-file` (the FULL step set after update). Optional: `--name`, `--schedule-id`, `--visibility everyone\|restricted`, `--access-type can_view\|can_edit\|full_access` (team access when visibility is `everyone`), `--owner-id <user-id>` (reassign the owner), `--permissions` (deprecated: use `--visibility`/`--access-type`), `--exact-daytime`, `--active`/`--inactive`, `--label`. |
 | `approve` | `--id` required. Approves a sequence pending review. |
 | `abort` | `--id` required. Deactivates an active sequence (stops sending). |
 | `archive` | `--id` required. Archives a sequence. |
 | `add-contacts` | Required: `--id`, `--from-email-account`. Provide `--contact-id` or `--label`. Optional: `--from-email`, `--no-email`, `--unverified-email`, `--job-change`, `--active-in-other`, `--finished-in-other`, `--same-company`, `--without-ownership`, `--add-if-in-queue`, `--skip-verification`, `--status active|paused`, `--auto-unpause-at <iso>`. |
 | `remove-contacts` | `--contact-id`, `--sequence-id`, `--mode remove\|stop`, `--reason <text>`. |
+| `activity` | `--contact-id` required. A contact's sequence events (`enrolled`, `paused`, `resumed`, `failed`, `completed`, `removed`, `replied`), newest first. Optional: `--sequence-id` (one sequence only), `--per-page <1-50>`. For `replied` events, pass `emailer_message_id` to `apollo emails content`. |
 
 ---
 
@@ -462,6 +512,7 @@ apollo emails draft --contact-id <id> --subject "Quick question" --body-html "<p
 apollo emails send --id <emailer-message-id>
 apollo emails status --id <emailer-message-id>
 apollo emails search --query "renewal" --stats delivered opened --per-page 25
+apollo emails content --ids <emailer-message-id> --body-format html
 ```
 
 | Subcommand | Notes |
@@ -469,6 +520,7 @@ apollo emails search --query "renewal" --stats delivered opened --per-page 25
 | `draft` | Requires `--contact-id` or `--reply-to <message-id>`. Optional: `--subject`, `--body-html`/`--body-file`, `--template-id`, `--task-id`, `--tracking`, `--attachment-ids`, `--recipients-file` (JSON array of `{ email, contact_id, recipient_type_cd }`). Creates the draft only. |
 | `send` | Sends a drafted email immediately; `--id` required. |
 | `status` | Check send status; `--id` required. |
+| `content` | Subject, body, recipients, and send time of sent emails. `--ids` required (up to 10; extra IDs are ignored). Optional: `--body-format plain\|html` (default `plain`). IDs that don't match one of your team's sent emails are left out of the response. |
 | `search` | `-q/--query`, `--user-ids`, `--stats`, `--reply-classes`, `--email-account-id`, `--sequence-ids`, `--not-sequence-ids`, `--date-range-mode`, `--date-from`/`--date-to`, paging. |
 
 ---
@@ -499,6 +551,8 @@ apollo labels remove --ids <contact-id1> --names "Conference 2026 - Maui" --moda
 ```bash
 apollo fields list
 apollo fields create --label "Renewal Date" --modality contact --type date
+apollo fields update --id contact.694095a80f1b6000110fc556 --label "Renewal owner"
+apollo fields update --id account.694095a80f1b6000110fc557 --meta-file ./picklist.json
 apollo fields custom
 ```
 
@@ -506,6 +560,7 @@ apollo fields custom
 |---|---|
 | `list` | All fields; optional `--source`. |
 | `create` | `--label`, `--modality contact\|account\|opportunity`, `--type string\|textarea\|number\|date\|datetime\|boolean`; optional `--max-length`. |
+| `update` | Updates one custom field. `--id` required, as `modality.field_id` (from `fields list --source custom`). Optional: `--label`, `--field-group-id`, `--max-length`, `--meta-file` (JSON `meta` object, e.g. `{ "picklist_values": [...] }`; keep each existing option's `id` to keep its stored values). Modality and type can't be changed. |
 | `custom` | All custom (typed) fields — returns the field IDs used in `typed_custom_fields` payloads. |
 
 ---
@@ -556,12 +611,13 @@ Polls the stored result of an asynchronous (webhook-based) request, e.g. async b
 ```bash
 apollo usage credits
 apollo usage api
+apollo usage api --endpoints api/v1/people/match api/v1/mixed_people/api_search
 ```
 
 | Subcommand | Notes |
 |---|---|
 | `credits` | Returns `credit_usage_stats` for the authenticated team (lead / direct-dial / export / conversation / AI / power-up credits with limit/consumed/left_over). |
-| `api` | Returns per-endpoint API usage stats and rate limits. |
+| `api` | Returns per-endpoint API usage stats and rate limits. Optional `--endpoints` limits the report to these endpoints, given as API key access paths without a leading slash. |
 
 ---
 
@@ -593,6 +649,26 @@ A minimal `report.json`:
   "pivot_group_by_totals_selected": false
 }
 ```
+
+---
+
+### `apollo agent`
+
+Runs [Apollo AI Assistant tasks](https://docs.apollo.io/reference/run-an-assistant-task). Describe the job in plain language and the Assistant picks the filters and actions: find prospects, enrich people in bulk, research and analyze records, analyze performance, fix email deliverability, summarize calls and meetings, draft sequences, and plan campaigns. A task runs in the background: `run` returns a `task_id` at once, and `poll` returns the status and messages.
+
+```bash
+apollo agent run --instruction "Find VPs of Sales at US fintech companies with 50-200 employees"
+apollo agent poll --task-id <task_id>                      # full conversation so far
+apollo agent poll --task-id <task_id> --cursor <cursor>    # only messages after the previous poll
+apollo agent run --task-id <task_id> --instruction "Yes, go ahead"   # answer a question or send a follow-up
+```
+
+| Subcommand | Notes |
+|---|---|
+| `run` | `--instruction` required. Add `--task-id` to continue a task that is `awaiting_input` or `complete`. Returns `task_id`, `status`, and `poll_after_ms`. An instruction sent while the task is `running` is ignored (see `note`). Running the command again without `--task-id` starts another task. |
+| `poll` | `--task-id` required. Returns `status` (`running`, `awaiting_input`, `complete`, `failed`), `messages` (`seq_num`, `role`, `text`), and `cursor`. Pass `--cursor` from the previous poll to get only new messages. While `running`, wait `poll_after_ms` (10 seconds) between polls. When `awaiting_input`, read `question` and answer with `run --task-id`. |
+
+Polling is free. The task itself can spend credits on the actions it runs (for example, enrichment), and the Assistant can ask for approval first (status `awaiting_input`). Poll as the same user that created the task: another user's task returns `403`.
 
 ---
 

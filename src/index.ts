@@ -9,6 +9,7 @@ import { registerCompanies } from './commands/companies.js';
 import { registerNews } from './commands/news.js';
 import { registerContacts } from './commands/contacts.js';
 import { registerAccounts } from './commands/accounts.js';
+import { registerAgent } from './commands/agent.js';
 import { registerDeals } from './commands/deals.js';
 import { registerSequences } from './commands/sequences.js';
 import { registerCalls } from './commands/calls.js';
@@ -50,6 +51,7 @@ program
   });
 
 registerAccounts(program);
+registerAgent(program);
 registerAnalytics(program);
 registerAuth(program);
 registerCalls(program);

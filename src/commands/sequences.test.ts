@@ -51,4 +51,21 @@ describe('buildSequenceUpdateBody', () => {
     expect(buildSequenceUpdateBody({ id: 's', stepsFile: 'x', active: true }, STEPS).active).toBe(true);
     expect(buildSequenceUpdateBody({ id: 's', stepsFile: 'x', inactive: true }, STEPS).active).toBe(false);
   });
+
+  it('maps --visibility and --access-type into sharing_permission and --owner-id to user_id', () => {
+    const body = buildSequenceUpdateBody(
+      { id: 's', stepsFile: 'x', visibility: 'everyone', accessType: 'can_edit', ownerId: 'user_1' },
+      STEPS,
+    );
+    expect(body).toEqual({
+      emailer_steps: STEPS,
+      sharing_permission: { visibility: 'everyone', access_type: 'can_edit' },
+      user_id: 'user_1',
+    });
+  });
+
+  it('sends only the sharing keys that were set', () => {
+    const body = buildSequenceUpdateBody({ id: 's', stepsFile: 'x', visibility: 'restricted' }, STEPS);
+    expect(body.sharing_permission).toEqual({ visibility: 'restricted' });
+  });
 });

@@ -18,9 +18,9 @@ const SCOPES = [
   'account_stages_list', 'account_stages_update', 'account_owners_update',
   'emailer_campaigns_search', 'emailer_campaigns_add_contact_ids', 'emailer_campaigns_remove_or_stop_contact_ids',
   'emailer_campaigns_create', 'emailer_campaigns_update', 'emailer_campaigns_approve',
-  'emailer_campaigns_abort', 'emailer_campaigns_archive', 'emailer_schedules_list',
+  'emailer_campaigns_abort', 'emailer_campaigns_archive', 'emailer_campaigns_activity_feed', 'emailer_schedules_list',
   'emailer_messages_create', 'emailer_messages_send_now', 'emailer_messages_email_send_status',
-  'emailer_messages_search',
+  'emailer_messages_search', 'emailer_messages_get_content',
   'email_accounts_list', 'read_user_profile', 'users_list',
   'opportunity_write', 'opportunities_list', 'opportunity_read', 'opportunity_update', 'opportunity_stages_list',
   'phone_call_write', 'phone_call_search', 'phone_call_update',
@@ -30,7 +30,7 @@ const SCOPES = [
   'notes_list',
   'conversations_search', 'conversations_show', 'conversations_export', 'conversations_find_export',
   'webhook_result_read', 'api_usage_stats_read',
-  'report_sync', 'credit_usage_stats_read',
+  'report_sync', 'credit_usage_stats_read', 'agent_task',
   // NOTE: `contacts deals` (api/v1/contacts/opportunities) and `emails stats`
   // (api/v1/emailer_messages/:id/activities) were removed from the CLI rather than left
   // permanently broken: both endpoints have NO entry at all in Apollo's ENDPOINT_SCOPE_MAP

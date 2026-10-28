@@ -1,12 +1,12 @@
 ---
 name: apollo-cli
-description: This skill should be used when searching for people, companies, employees, job postings, or news, OR when driving CRM data (contacts, accounts, deals), sequences, one-off outreach emails, lists/labels, custom fields, notes, phone calls, tasks, conversations, analytics, or credit/API usage in Apollo.io from the terminal. Activates when the user asks to "find people", "search companies", "enrich a contact", "look up employees", "find jobs at a company", "get company news", "create a contact / account / deal", "log a call", "create a task", "add to sequence", "send an email", "add to a list", "check analytics", "view credit usage", or any task involving Apollo.io data lookup or CRM writes from the terminal.
-version: 4.0.0
+description: This skill should be used when searching for people, companies, employees, job postings, or news, OR when driving CRM data (contacts, accounts, deals), sequences, one-off outreach emails, lists/labels, custom fields, notes, phone calls, tasks, conversations, analytics, or credit/API usage in Apollo.io from the terminal. Activates when the user asks to "find people", "search companies", "enrich a contact", "look up employees", "find jobs at a company", "get company news", "create a contact / account / deal", "log a call", "create a task", "add to sequence", "send an email", "add to a list", "check analytics", "view credit usage", "run an Apollo AI Assistant task", or any task involving Apollo.io data lookup or CRM writes from the terminal.
+version: 4.1.0
 ---
 
 # Apollo CLI Skill
 
-Use the `apollo` CLI to drive Apollo.io end to end: search/enrich people and companies, surface news and job postings, manage CRM contacts/accounts/deals, drive sequences, draft and send outreach emails, manage lists (labels) and custom fields, view notes, log phone calls and tasks, search recorded conversations, pull analytics, and inspect credit/API usage. Output defaults to JSON for `jq` piping; use `-f, --format` to switch to `jsonl`, `csv`, `yaml`, or `table`.
+Use the `apollo` CLI to drive Apollo.io end to end: search/enrich people and companies, surface news and job postings, manage CRM contacts/accounts/deals, drive sequences, draft and send outreach emails, manage lists (labels) and custom fields, view notes, log phone calls and tasks, search recorded conversations, pull analytics, inspect credit/API usage, and run Apollo AI Assistant tasks. Output defaults to JSON for `jq` piping; use `-f, --format` to switch to `jsonl`, `csv`, `yaml`, or `table`.
 
 ## Authentication
 
@@ -21,6 +21,8 @@ If not logged in, run:
 ```bash
 apollo auth login
 ```
+
+If a command returns `403` right after the CLI was upgraded, the saved token is missing a scope that a new command needs. Ask the user to run `apollo auth login` again.
 
 ## Commands
 
@@ -41,7 +43,19 @@ apollo people search --department engineering --technology react --per-page 25
 apollo people search --title CTO --employees "51,200" --hiring-for "Software Engineer"
 ```
 
-**More search filters:** `--include-similar-titles` (fuzzy title match), `--email-status verified`, `--keyword-tags` (free-text company keywords), `--organization-ids`, `--using-all-technology` / `--not-using-technology` (vs the any-of `--technology`), and company hiring filters `--job-locations`, `--num-jobs "min,max"`, `--job-posted "min,max"`.
+**More search filters:** `--name` (person's name), `--include-similar-titles` (fuzzy title match), `--email-status verified`, `--keyword-tags` (free-text company keywords), `--organization-ids`, `--using-all-technology` / `--not-using-technology` (vs the any-of `--technology`), and company hiring filters `--job-locations`, `--num-jobs "min,max"`, `--job-posted "min,max"`.
+
+**Exclusions:** `--not-title`, `--not-past-title`, `--not-city` (person location), `--not-company-location`, `--not-domain`, `--not-industry` (tag IDs), `--not-naics`, `--not-sic`.
+
+**Industry codes and names:** `--naics 5415` (prefix or range like `31-33`), `--sic 7372` (prefix), `--industry-name "information technology & services"` (Apollo's exact lowercase name, as returned in `industries` by `companies enrich`).
+
+**Lookalikes and growth:** `--lookalike-ids <org_id...>` returns people at companies similar to the seeds (not at the seeds). `--headcount-growth "min,max"` (percent; negatives for shrinking companies) needs `--headcount-growth-months 6|12|24`.
+
+```bash
+# Sales leaders at growing IT-services companies, excluding interns and one competitor
+apollo people search --title "Head of Sales" --not-title intern --naics 5415 \
+  --headcount-growth "20,100" --headcount-growth-months 12 --not-domain competitor.com
+```
 
 > Note: `people search --industry` expects Apollo industry **tag IDs** (e.g. `5567cd4773696439b10b0000`), not free-text names like `"artificial intelligence"`. Passing free text returns HTTP 422. Use `--keyword-tags` or `companies search --industry` for free-text keyword tags.
 
@@ -55,6 +69,13 @@ apollo people enrich --name "Jane Doe" --domain acme.com --reveal-personal-email
 ```
 
 Identifiers: `--email`, `--hashed-email`, `--linkedin`, `--name`/`--first-name`+`--last-name`, plus `--company` (name) and/or `--domain`. Add `--reveal-personal-emails` to surface personal emails (consumes credits).
+
+**Phone numbers and waterfall enrichment** (`--reveal-phone-number`, `--run-waterfall-email`, `--run-waterfall-phone`) consume credits and arrive asynchronously. Add `--poll-only`, then poll with the returned `request_id` (or pass `--webhook-url` instead). The same flags work on `bulk-enrich`. Confirm the credit cost with the user before you reveal phone numbers.
+
+```bash
+apollo people enrich --email jane@acme.com --reveal-phone-number --poll-only
+apollo webhooks result --request-id <request_id>
+```
 
 **Bulk enrich multiple people** — by email, or by full identifier records via a JSON file:
 
@@ -97,6 +118,8 @@ apollo companies search --funding "1000000,10000000"
 ```
 
 Also: `--name`, `--domains`, `--organization-ids`, `--funding-date "min,max"` (ISO dates), and hiring filters `--job-locations`, `--num-jobs "min,max"`, `--job-posted "min,max"`.
+
+New filters: `--not-domains`, `--not-keyword-tags` (counterpart of `--industry` keyword tags), `--industry-ids` / `--not-industry-ids` (industry tag IDs; `--industry` here is keyword tags, unlike `people search`), `--industry-name`, `--naics` / `--not-naics`, `--sic` / `--not-sic`, `--lookalike-ids <org_id...>` (results ranked by similarity, seeds excluded), and `--headcount-growth "min,max"` with `--headcount-growth-months 6|12|24`.
 
 **Enrich a company by domain or name:**
 
@@ -232,6 +255,17 @@ apollo sequences archive --id <seq_id>           # archive a sequence
 
 `create`/`update` take the ordered `emailer_steps` as a JSON file (`--steps-file`); `create` requires `--name`, `update` requires `--id`. Activation: `create --active`, or `update --active`/`--inactive`. Get `--schedule-id` from `sequences schedules`. Activating + approving means contacts can start receiving real email — confirm with the user first.
 
+**Sharing and owner:** `update --visibility everyone|restricted` and `--access-type can_view|can_edit|full_access` (team access when visibility is `everyone`) set `sharing_permission`; `update --owner-id <user_id>` reassigns the owner (get IDs from `users search`). `--permissions` is deprecated.
+
+**A contact's sequence activity** (events `enrolled`, `paused`, `resumed`, `failed`, `completed`, `removed`, `replied`, newest first):
+
+```bash
+apollo sequences activity --contact-id <contact_id>                         # all sequences
+apollo sequences activity --contact-id <contact_id> --sequence-id <seq_id> --per-page 25
+```
+
+For a `replied` event, pass its `emailer_message_id` to `apollo emails content` to read the email the contact replied to.
+
 ---
 
 ### Emails (one-off outreach)
@@ -244,6 +278,7 @@ apollo emails draft --reply-to <emailer_message_id> --body-file ./reply.html    
 apollo emails send --id <emailer_message_id>       # SEND the drafted email now
 apollo emails status --id <emailer_message_id>     # check send status
 apollo emails search -q "renewal" --stats delivered opened --per-page 25
+apollo emails content --ids <emailer_message_id> [<id>...] --body-format html   # subject, body, recipients of sent emails (max 10)
 ```
 
 Draft options: `--template-id`, `--task-id`, `--tracking`, `--attachment-ids`, `--recipients-file` (JSON array of `{ email, contact_id, recipient_type_cd }` for to/cc/bcc).
@@ -270,7 +305,11 @@ apollo labels remove --ids <id1> --names "Conference 2026" --modality contacts
 apollo fields list                       # all fields; optional --source
 apollo fields custom                     # custom (typed) fields -> IDs for typed_custom_fields payloads
 apollo fields create --label "Renewal Date" --modality contact --type date   # modality: contact|account|opportunity
+apollo fields update --id contact.<field_id> --label "Renewal owner"          # one custom field per call
+apollo fields update --id account.<field_id> --meta-file ./picklist.json       # e.g. { "picklist_values": [...] }
 ```
+
+`fields update` takes the `modality.field_id` ID from `fields list --source custom`. To keep stored values when you rename picklist options, keep each existing option's `id`. Modality and type can't be changed.
 
 ---
 
@@ -359,6 +398,7 @@ Returns connected sending inboxes. **Always call this before `sequences add-cont
 ```bash
 apollo usage credits   # team-wide credit_usage_stats (lead / direct_dial / export / conversation / ai / power_up)
 apollo usage api       # per-endpoint API usage stats and rate limits
+apollo usage api --endpoints api/v1/people/match   # only these endpoints (API key access paths, no leading slash)
 ```
 
 For a single user's balance, prefer `apollo users profile --credits`.
@@ -393,6 +433,27 @@ Minimal payload (each metric needs `value`, `smart_datetime_reference`, and `sma
   "pivot_group_by_totals_selected": false
 }
 ```
+
+---
+
+### Apollo AI Assistant tasks
+
+`apollo agent` runs the Apollo AI Assistant: give it the user's request in plain language and it chooses the filters and actions. Use it for jobs the other commands don't cover in one call: finding prospects from a vague or similarity-based description ("companies like my best customers"), enriching many people from a search, research and qualification, performance analysis, email deliverability fixes, call and meeting summaries, sequence drafting, and GTM planning. When the user already gives exact filters, use `people search` / `companies search` instead.
+
+```bash
+apollo agent run --instruction "<the user's request, word for word>"        # -> .task_id, .status "running", .poll_after_ms
+apollo agent poll --task-id <task_id>                                      # -> .status, .messages[], .cursor
+apollo agent poll --task-id <task_id> --cursor <cursor>                    # only messages after the previous poll
+apollo agent run --task-id <task_id> --instruction "<the user's answer>"  # answer .question or send a follow-up
+```
+
+1. Pass the user's request as `--instruction` without rewording it. The Assistant reads the team's saved profile and Apollo's live data; your paraphrase narrows or skews the result.
+2. Poll with `agent poll` every `poll_after_ms` (10 seconds) while `status` is `running`. Ignore the `apollo_agent_poll_task` name in `next_action`: that is the MCP tool, and `agent poll` is the CLI equivalent. An empty `messages[]` doesn't mean the task is done; check `status`.
+3. On `awaiting_input`, show `question` to the user (it can ask to approve a credit spend) and send their answer with `agent run --task-id`. Never approve credit spends for the user.
+4. On `complete`, read the last assistant message. On `failed`, stop and show the messages.
+5. Set a deadline (for example, 10 minutes) and tell the user if the task is still running. Don't call `agent run` again without `--task-id`: that starts a second task.
+
+Polling is free; the task's actions (for example, enrichment) can spend credits.
 
 ---
 
@@ -451,7 +512,7 @@ apollo companies search --industry SaaS --funding "5000000,20000000" --location 
 | Command | Top-level key |
 |---|---|
 | `people search` / `people employees` | `.people[]` |
-| `people enrich` | `.person` |
+| `people enrich` | `.person` (+ `.request_id` for async phone/waterfall results) |
 | `people bulk-enrich` | `.matches[]` |
 | `people get` | `.person` |
 | `companies search` | `.accounts[]` |
@@ -475,12 +536,15 @@ apollo companies search --industry SaaS --funding "5000000,20000000" --location 
 | `sequences search` | `.emailer_campaigns[]` (+ `.pagination`) |
 | `sequences add-contacts` / `sequences remove-contacts` | varies — confirmation payload |
 | `sequences abort` / `sequences archive` | `.emailer_campaign` |
+| `sequences activity` | `.events[]` (+ `.contact_id`) |
 | `emails draft` | `.emailer_message` |
 | `emails send` / `emails status` | send-status payload |
 | `emails search` | `.emailer_messages[]` (+ `.pagination`) |
+| `emails content` | `.emailer_messages[]` (`subject`, `body`, `recipients`, `sent_at`) |
 | `labels list` / `labels create` / `labels update` | `.labels[]` / `.label` |
 | `labels add` / `labels remove` | updated `.labels[]` (or `.entity_progress_job` with `--async`) |
 | `fields list` / `fields custom` | `.fields[]` / `.typed_custom_fields[]` |
+| `fields update` | `.fields[]` (+ `.typed_custom_fields[]`, `.field_groups[]`) |
 | `notes list` | `.notes[]` |
 | `conversations search` | `.conversations[]` |
 | `conversations show` | conversation object |
@@ -498,3 +562,5 @@ apollo companies search --industry SaaS --funding "5000000,20000000" --location 
 | `usage api` | per-endpoint usage/rate-limit object |
 | `webhooks result` | stored webhook payload |
 | `analytics report` | `.response` (primary result data), `.incompatible_filters`, `.computed_filters`, `.goals` |
+| `agent run` | `.task_id`, `.status`, `.poll_after_ms` (+ `.note` if the instruction was ignored) |
+| `agent poll` | `.status`, `.messages[]` (`seq_num`, `role`, `text`), `.cursor` (+ `.question` when `awaiting_input`) |
