@@ -4,7 +4,6 @@ import { print, FORMAT_OPTION } from '../output.js';
 
 interface AgentRunOptions {
   instruction: string;
-  taskId?: string;
   format?: string;
 }
 
@@ -17,18 +16,15 @@ interface AgentPollOptions {
 export function registerAgent(program: Command): void {
   const agent = program
     .command('agent')
-    .description('Run and poll Apollo AI Assistant tasks (natural-language prospecting, research, analysis, and more)');
+    .description('Run and poll Apollo AI Assistant tasks');
 
   agent
     .command('run')
-    .description('Start an Assistant task, or continue one with --task-id (returns immediately; poll with `agent poll`)')
+    .description('Start a new Assistant task (returns immediately; poll with `agent poll`)')
     .requiredOption('--instruction <text>', 'What the Assistant should do, in plain language')
-    .option('--task-id <id>', 'Continue this task (answer its question or send a follow-up) instead of starting a new one')
     .option(...FORMAT_OPTION)
     .action(async (opts: AgentRunOptions) => {
-      const body: Record<string, unknown> = { instruction: opts.instruction };
-      if (opts.taskId) body.task_id = opts.taskId;
-      const data = await apolloRequest('/agents/task', body);
+      const data = await apolloRequest('/agents/task', { instruction: opts.instruction });
       print(data, opts.format);
     });
 

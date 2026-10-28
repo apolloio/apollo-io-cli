@@ -1,7 +1,7 @@
 import type { Command } from 'commander';
 import { apolloGet, apolloRequest } from '../api.js';
 import { print, FORMAT_OPTION } from '../output.js';
-import { parsePageOptions, parseRange, parseDepartmentHeadcounts } from '../utils.js';
+import { parsePageOptions, parseRange, parseDepartmentHeadcounts, parseHeadcountGrowth } from '../utils.js';
 
 interface PeopleSearchOptions {
   query?: string;
@@ -123,8 +123,7 @@ export function buildPeopleSearchBody(opts: PeopleSearchOptions): Record<string,
   if (opts.companyLocation) body.organization_locations = opts.companyLocation;
   if (opts.notCompanyLocation) body.organization_not_locations = opts.notCompanyLocation;
   if (opts.employees) body.organization_num_employees_ranges = [opts.employees];
-  if (opts.headcountGrowth) body.organization_headcount_growth_range = parseRange(opts.headcountGrowth);
-  if (opts.headcountGrowthMonths) body.organization_headcount_growth_past_n_months = Number(opts.headcountGrowthMonths);
+  Object.assign(body, parseHeadcountGrowth(opts.headcountGrowth, opts.headcountGrowthMonths));
   if (opts.hiringFor) body.q_organization_job_titles = opts.hiringFor;
   if (opts.jobLocations) body.organization_job_locations = opts.jobLocations;
   if (opts.numJobs) body.organization_num_jobs_range = parseRange(opts.numJobs);

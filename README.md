@@ -560,7 +560,7 @@ apollo fields custom
 |---|---|
 | `list` | All fields; optional `--source`. |
 | `create` | `--label`, `--modality contact\|account\|opportunity`, `--type string\|textarea\|number\|date\|datetime\|boolean`; optional `--max-length`. |
-| `update` | Updates one custom field. `--id` required, as `modality.field_id` (from `fields list --source custom`). Optional: `--label`, `--field-group-id`, `--max-length`, `--meta-file` (JSON `meta` object, e.g. `{ "picklist_values": [...] }`; keep each existing option's `id` to keep its stored values). Modality and type can't be changed. |
+| `update` | Updates one custom field. `--id` required, as `modality.field_id` (from `fields list --source custom`). Optional: `--label`, `--field-group-id`, `--max-length`, `--meta-file` (JSON `meta` object, e.g. `{ "picklist_values": [...] }`). For a picklist field, every update (even a rename) must send all the options to keep in `picklist_values`: options left out are removed, and an existing option sent without its `id` is recreated, which orphans the values stored on records. Modality and type can't be changed. |
 | `custom` | All custom (typed) fields — returns the field IDs used in `typed_custom_fields` payloads. |
 
 ---
@@ -654,21 +654,20 @@ A minimal `report.json`:
 
 ### `apollo agent`
 
-Runs [Apollo AI Assistant tasks](https://docs.apollo.io/reference/run-an-assistant-task). Describe the job in plain language and the Assistant picks the filters and actions: find prospects, enrich people in bulk, research and analyze records, analyze performance, fix email deliverability, summarize calls and meetings, draft sequences, and plan campaigns. A task runs in the background: `run` returns a `task_id` at once, and `poll` returns the status and messages.
+Runs [Apollo AI Assistant tasks](https://docs.apollo.io/reference/run-an-assistant-task). Give the Assistant an instruction in plain language. It can perform actions with your user's permissions. A task runs in the background: `run` returns a `task_id` at once, and `poll` returns the status and messages.
 
 ```bash
-apollo agent run --instruction "Find VPs of Sales at US fintech companies with 50-200 employees"
+apollo agent run --instruction "Find companies matching my ideal customer profile."
 apollo agent poll --task-id <task_id>                      # full conversation so far
 apollo agent poll --task-id <task_id> --cursor <cursor>    # only messages after the previous poll
-apollo agent run --task-id <task_id> --instruction "Yes, go ahead"   # answer a question or send a follow-up
 ```
 
 | Subcommand | Notes |
 |---|---|
-| `run` | `--instruction` required. Add `--task-id` to continue a task that is `awaiting_input` or `complete`. Returns `task_id`, `status`, and `poll_after_ms`. An instruction sent while the task is `running` is ignored (see `note`). Running the command again without `--task-id` starts another task. |
-| `poll` | `--task-id` required. Returns `status` (`running`, `awaiting_input`, `complete`, `failed`), `messages` (`seq_num`, `role`, `text`), and `cursor`. Pass `--cursor` from the previous poll to get only new messages. While `running`, wait `poll_after_ms` (10 seconds) between polls. When `awaiting_input`, read `question` and answer with `run --task-id`. |
+| `run` | `--instruction` required. Starts a new task and returns `task_id`, `status` (`running`), and `poll_after_ms`. Each call starts another task. |
+| `poll` | `--task-id` required. Returns `status` (`running`, `awaiting_input`, `complete`, `failed`), `messages` (`seq_num`, `role`, `text`), and `cursor`. Pass `--cursor` from the previous poll to get only new messages. While `running`, wait `poll_after_ms` (10 seconds) between polls. When `awaiting_input`, `question` holds the Assistant's question. An empty `messages` array doesn't mean the task is done: check `status`. |
 
-Polling is free. The task itself can spend credits on the actions it runs (for example, enrichment), and the Assistant can ask for approval first (status `awaiting_input`). Poll as the same user that created the task: another user's task returns `403`.
+Polling is free. The task can spend credits on the actions it runs, for example enrichment. Poll as the same user that created the task: another user's task returns `403`.
 
 ---
 

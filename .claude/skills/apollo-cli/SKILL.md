@@ -309,7 +309,7 @@ apollo fields update --id contact.<field_id> --label "Renewal owner"          # 
 apollo fields update --id account.<field_id> --meta-file ./picklist.json       # e.g. { "picklist_values": [...] }
 ```
 
-`fields update` takes the `modality.field_id` ID from `fields list --source custom`. To keep stored values when you rename picklist options, keep each existing option's `id`. Modality and type can't be changed.
+`fields update` takes the `modality.field_id` ID from `fields list --source custom`. For a picklist field, every update (even a rename) must send all the options to keep in `picklist_values`: options left out are removed, and an existing option sent without its `id` is recreated, which orphans the values stored on records. Modality and type can't be changed.
 
 ---
 
@@ -438,20 +438,19 @@ Minimal payload (each metric needs `value`, `smart_datetime_reference`, and `sma
 
 ### Apollo AI Assistant tasks
 
-`apollo agent` runs the Apollo AI Assistant: give it the user's request in plain language and it chooses the filters and actions. Use it for jobs the other commands don't cover in one call: finding prospects from a vague or similarity-based description ("companies like my best customers"), enriching many people from a search, research and qualification, performance analysis, email deliverability fixes, call and meeting summaries, sequence drafting, and GTM planning. When the user already gives exact filters, use `people search` / `companies search` instead.
+`apollo agent` runs an Apollo AI Assistant task: the Assistant works on a plain-language instruction in the background and can perform actions with the user's permissions. When the user already gives exact filters, use `people search` / `companies search` instead.
 
 ```bash
-apollo agent run --instruction "<the user's request, word for word>"        # -> .task_id, .status "running", .poll_after_ms
-apollo agent poll --task-id <task_id>                                      # -> .status, .messages[], .cursor
-apollo agent poll --task-id <task_id> --cursor <cursor>                    # only messages after the previous poll
-apollo agent run --task-id <task_id> --instruction "<the user's answer>"  # answer .question or send a follow-up
+apollo agent run --instruction "<the user's request, word for word>"   # -> .task_id, .status "running", .poll_after_ms
+apollo agent poll --task-id <task_id>                                 # -> .status, .messages[], .cursor
+apollo agent poll --task-id <task_id> --cursor <cursor>               # only messages after the previous poll
 ```
 
-1. Pass the user's request as `--instruction` without rewording it. The Assistant reads the team's saved profile and Apollo's live data; your paraphrase narrows or skews the result.
+1. Pass the user's request as `--instruction` without rewording it.
 2. Poll with `agent poll` every `poll_after_ms` (10 seconds) while `status` is `running`. Ignore the `apollo_agent_poll_task` name in `next_action`: that is the MCP tool, and `agent poll` is the CLI equivalent. An empty `messages[]` doesn't mean the task is done; check `status`.
-3. On `awaiting_input`, show `question` to the user (it can ask to approve a credit spend) and send their answer with `agent run --task-id`. Never approve credit spends for the user.
+3. On `awaiting_input`, stop polling and show `question` to the user.
 4. On `complete`, read the last assistant message. On `failed`, stop and show the messages.
-5. Set a deadline (for example, 10 minutes) and tell the user if the task is still running. Don't call `agent run` again without `--task-id`: that starts a second task.
+5. Set a deadline (for example, 10 minutes) and tell the user if the task is still running. Each `agent run` starts a new task, so don't run it again to check on one.
 
 Polling is free; the task's actions (for example, enrichment) can spend credits.
 
@@ -562,5 +561,5 @@ apollo companies search --industry SaaS --funding "5000000,20000000" --location 
 | `usage api` | per-endpoint usage/rate-limit object |
 | `webhooks result` | stored webhook payload |
 | `analytics report` | `.response` (primary result data), `.incompatible_filters`, `.computed_filters`, `.goals` |
-| `agent run` | `.task_id`, `.status`, `.poll_after_ms` (+ `.note` if the instruction was ignored) |
+| `agent run` | `.task_id`, `.status`, `.poll_after_ms` |
 | `agent poll` | `.status`, `.messages[]` (`seq_num`, `role`, `text`), `.cursor` (+ `.question` when `awaiting_input`) |

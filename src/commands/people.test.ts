@@ -1,4 +1,4 @@
-import { describe, it, expect } from 'vitest';
+import { describe, it, expect, vi } from 'vitest';
 import { buildPeopleSearchBody, buildPeopleEnrichBody, buildRevealFlags } from './people.js';
 
 describe('buildPeopleSearchBody', () => {
@@ -103,6 +103,25 @@ describe('buildPeopleSearchBody', () => {
       organization_headcount_growth_range: { min: '-20', max: '-1' },
       organization_headcount_growth_past_n_months: 12,
     });
+  });
+
+  it.each([
+    [{ headcountGrowth: '10,100' }, 'must be used together'],
+    [{ headcountGrowthMonths: '12' }, 'must be used together'],
+    [{ headcountGrowth: '10,100', headcountGrowthMonths: '3' }, 'must be 6, 12, or 24'],
+  ])('exits instead of sending a headcount-growth filter the API would skip: %o', (opts, message) => {
+    const exit = vi.spyOn(process, 'exit').mockImplementation(() => {
+      throw new Error('process.exit');
+    });
+    const error = vi.spyOn(console, 'error').mockImplementation(() => {});
+    try {
+      expect(() => buildPeopleSearchBody(opts)).toThrow('process.exit');
+      expect(exit).toHaveBeenCalledWith(1);
+      expect(error).toHaveBeenCalledWith(expect.stringContaining(message));
+    } finally {
+      exit.mockRestore();
+      error.mockRestore();
+    }
   });
 });
 

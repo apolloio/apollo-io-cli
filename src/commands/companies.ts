@@ -1,7 +1,7 @@
 import type { Command } from 'commander';
 import { apolloGet, apolloRequest } from '../api.js';
 import { print, FORMAT_OPTION } from '../output.js';
-import { parsePageOptions, parseRange } from '../utils.js';
+import { parsePageOptions, parseRange, parseHeadcountGrowth } from '../utils.js';
 
 interface CompaniesSearchOptions {
   query?: string;
@@ -95,8 +95,7 @@ export function buildCompaniesSearchBody(opts: CompaniesSearchOptions): Record<s
   if (opts.location) body.organization_locations = opts.location;
   if (opts.notLocation) body.organization_not_locations = opts.notLocation;
   if (opts.employees) body.organization_num_employees_ranges = [opts.employees];
-  if (opts.headcountGrowth) body.organization_headcount_growth_range = parseRange(opts.headcountGrowth);
-  if (opts.headcountGrowthMonths) body.organization_headcount_growth_past_n_months = Number(opts.headcountGrowthMonths);
+  Object.assign(body, parseHeadcountGrowth(opts.headcountGrowth, opts.headcountGrowthMonths));
   if (opts.technology) body.currently_using_any_of_technology_uids = opts.technology;
   if (opts.revenue) body.revenue_range = parseRange(opts.revenue);
   if (opts.funding) body.latest_funding_amount_range = parseRange(opts.funding);
