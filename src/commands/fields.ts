@@ -15,8 +15,35 @@ interface FieldsCreateOptions {
   format?: string;
 }
 
+interface FieldsUpdateOptions {
+  id: string;
+  label?: string;
+  fieldGroupId?: string;
+  maxLength?: string;
+  metaFile?: string;
+  format?: string;
+}
+
+// Maps fields-update CLI options (+ an optional parsed --meta-file object) to the PATCH /fields
+// request body. The API updates one field per request, wrapped in a `fields` array. Pure.
+export function buildFieldsUpdateBody(
+  opts: FieldsUpdateOptions,
+  meta?: Record<string, unknown>,
+): Record<string, unknown> {
+  if (!opts.label && !opts.fieldGroupId && opts.maxLength === undefined && !meta) {
+    console.error('Error: nothing to update, pass --label, --field-group-id, --max-length or --meta-file');
+    process.exit(1);
+  }
+  const field: Record<string, unknown> = { id: opts.id };
+  if (opts.label) field.label = opts.label;
+  if (opts.fieldGroupId) field.field_group_id = opts.fieldGroupId;
+  if (opts.maxLength !== undefined) field.meta = { ...meta, max_length: Number(opts.maxLength) };
+  else if (meta) field.meta = meta;
+  return { fields: [field] };
+}
+
 export function registerFields(program: Command): void {
-  const fields = program.command('fields').description('List and create fields (including custom fields)');
+  const fields = program.command('fields').description('List, create, and update fields (including custom fields)');
 
   fields
     .command('list')
@@ -44,6 +71,30 @@ export function registerFields(program: Command): void {
       };
       if (opts.maxLength !== undefined) body.meta = { max_length: Number(opts.maxLength) };
       const data = await apolloRequest('/fields', body);
+      print(data, opts.format);
+    });
+
+  fields
+    .command('update')
+    .description('Update a custom field: rename it, move it to a field group, or change its settings')
+    .requiredOption('--id <id>', 'Field ID as modality.field_id (e.g. contact.694095a80f1b6000110fc556) — see `fields list --source custom`')
+    .option('--label <label>', 'New field name')
+    .option('--field-group-id <id>', 'Move the field into this field group (folder)')
+    .option('--max-length <n>', 'New maximum length (for text fields)')
+    .option('--meta-file <path>', 'Path to a JSON file with the field `meta` object (e.g. { "picklist_values": [...] }). Picklist fields: every update, even a rename, must include the full picklist_values; options left out are removed')
+    .option(...FORMAT_OPTION)
+    .action(async (opts: FieldsUpdateOptions) => {
+      let meta: Record<string, unknown> | undefined;
+      if (opts.metaFile) {
+        const fs = await import('node:fs/promises');
+        const parsed: unknown = JSON.parse(await fs.readFile(opts.metaFile, 'utf8'));
+        if (typeof parsed !== 'object' || parsed === null || Array.isArray(parsed)) {
+          console.error('Error: --meta-file must contain a JSON object');
+          process.exit(1);
+        }
+        meta = parsed as Record<string, unknown>;
+      }
+      const data = await apolloRequest('/fields', buildFieldsUpdateBody(opts, meta), 'PATCH');
       print(data, opts.format);
     });
 

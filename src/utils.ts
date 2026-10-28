@@ -26,6 +26,24 @@ export function parseRange(input: string): { min: string; max: string } {
   return { min: min ?? '', max: max ?? '' };
 }
 
+// Maps --headcount-growth and --headcount-growth-months to their search params. The API skips the
+// filter without an error when one of the pair is missing or the window isn't 6, 12, or 24, so reject those.
+export function parseHeadcountGrowth(range?: string, months?: string): Record<string, unknown> {
+  if (!range && !months) return {};
+  if (!range || !months) {
+    console.error('Error: --headcount-growth and --headcount-growth-months must be used together');
+    process.exit(1);
+  }
+  if (!['6', '12', '24'].includes(months)) {
+    console.error('Error: --headcount-growth-months must be 6, 12, or 24');
+    process.exit(1);
+  }
+  return {
+    organization_headcount_growth_range: parseRange(range),
+    organization_headcount_growth_past_n_months: Number(months),
+  };
+}
+
 // Parses "department:min,max" entries (e.g. "master_sales:0,2") into the
 // { [department]: { min, max } } shape organization_department_or_subdepartment_counts expects.
 export function parseDepartmentHeadcounts(entries: string[]): Record<string, { min: string; max: string }> {

@@ -6,6 +6,11 @@ interface UsageCreditsOptions {
   format?: string;
 }
 
+interface UsageApiOptions {
+  endpoints?: string[];
+  format?: string;
+}
+
 export function registerUsage(program: Command): void {
   const usage = program.command('usage').description('Credit usage and rate-limit stats');
 
@@ -21,9 +26,10 @@ export function registerUsage(program: Command): void {
   usage
     .command('api')
     .description('View API usage stats and rate limits per endpoint')
+    .option('--endpoints <paths...>', 'Only report these endpoints, as API key access paths without a leading slash (e.g. api/v1/people/match)')
     .option(...FORMAT_OPTION)
-    .action(async (opts: UsageCreditsOptions) => {
-      const data = await apolloRequest('/usage_stats/api_usage_stats', {});
+    .action(async (opts: UsageApiOptions) => {
+      const data = await apolloRequest('/usage_stats/api_usage_stats', opts.endpoints ? { endpoints: opts.endpoints } : {});
       print(data, opts.format);
     });
 }

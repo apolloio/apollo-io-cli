@@ -1,5 +1,5 @@
-import { describe, it, expect } from 'vitest';
-import { buildPeopleSearchBody, buildPeopleEnrichBody } from './people.js';
+import { describe, it, expect, vi } from 'vitest';
+import { buildPeopleSearchBody, buildPeopleEnrichBody, buildRevealFlags } from './people.js';
 
 describe('buildPeopleSearchBody', () => {
   it('maps --city to person_locations (person, not org)', () => {
@@ -64,6 +64,65 @@ describe('buildPeopleSearchBody', () => {
       master_engineering_technical: { min: '50', max: '200' },
     });
   });
+
+  it('maps the name, exclusion, industry-code, and lookalike filters', () => {
+    const body = buildPeopleSearchBody({
+      name: 'Jon Snow',
+      notTitle: ['intern'],
+      notPastTitle: ['recruiter'],
+      notCity: ['Texas'],
+      notCompanyLocation: ['Germany'],
+      notDomain: ['apollo.io'],
+      notIndustry: ['5567cd4773696439b10b0000'],
+      industryName: ['hospital & health care'],
+      naics: ['5415'],
+      notNaics: ['31-33'],
+      sic: ['7372'],
+      notSic: ['91'],
+      lookalikeIds: ['5e66b6381e05b4008c8331b8'],
+    });
+    expect(body).toEqual({
+      q_person_name: 'Jon Snow',
+      person_not_titles: ['intern'],
+      person_not_past_titles: ['recruiter'],
+      person_not_locations: ['Texas'],
+      organization_not_locations: ['Germany'],
+      not_organization_websites_list: ['apollo.io'],
+      organization_not_industry_tag_ids: ['5567cd4773696439b10b0000'],
+      organization_industries: ['hospital & health care'],
+      organization_naics_codes: ['5415'],
+      not_organization_naics_codes: ['31-33'],
+      organization_sic_codes: ['7372'],
+      not_organization_sic_codes: ['91'],
+      lookalike_organization_ids: ['5e66b6381e05b4008c8331b8'],
+    });
+  });
+
+  it('maps --headcount-growth to a range and --headcount-growth-months to a number', () => {
+    expect(buildPeopleSearchBody({ headcountGrowth: '-20,-1', headcountGrowthMonths: '12' })).toEqual({
+      organization_headcount_growth_range: { min: '-20', max: '-1' },
+      organization_headcount_growth_past_n_months: 12,
+    });
+  });
+
+  it.each([
+    [{ headcountGrowth: '10,100' }, 'must be used together'],
+    [{ headcountGrowthMonths: '12' }, 'must be used together'],
+    [{ headcountGrowth: '10,100', headcountGrowthMonths: '3' }, 'must be 6, 12, or 24'],
+  ])('exits instead of sending a headcount-growth filter the API would skip: %o', (opts, message) => {
+    const exit = vi.spyOn(process, 'exit').mockImplementation(() => {
+      throw new Error('process.exit');
+    });
+    const error = vi.spyOn(console, 'error').mockImplementation(() => {});
+    try {
+      expect(() => buildPeopleSearchBody(opts)).toThrow('process.exit');
+      expect(exit).toHaveBeenCalledWith(1);
+      expect(error).toHaveBeenCalledWith(expect.stringContaining(message));
+    } finally {
+      exit.mockRestore();
+      error.mockRestore();
+    }
+  });
 });
 
 describe('buildPeopleEnrichBody', () => {
@@ -79,5 +138,52 @@ describe('buildPeopleEnrichBody', () => {
       hashed_email: 'abc123',
       reveal_personal_emails: true,
     });
+  });
+
+  it('maps the phone, waterfall, and poll-only flags', () => {
+    const body = buildPeopleEnrichBody({
+      email: 'jane@acme.com',
+      revealPhoneNumber: true,
+      runWaterfallEmail: true,
+      runWaterfallPhone: true,
+      pollOnly: true,
+    });
+    expect(body).toEqual({
+      email: 'jane@acme.com',
+      reveal_phone_number: true,
+      run_waterfall_email: true,
+      run_waterfall_phone: true,
+      poll_only: true,
+    });
+  });
+});
+
+describe('buildRevealFlags', () => {
+  it('passes --webhook-url through and omits unset flags', () => {
+    expect(buildRevealFlags({ revealPhoneNumber: true, webhookUrl: 'https://example.com/hook' })).toEqual({
+      reveal_phone_number: true,
+      webhook_url: 'https://example.com/hook',
+    });
+    expect(buildRevealFlags({})).toEqual({});
+  });
+
+  it.each([
+    [{ revealPhoneNumber: true }, 'need --webhook-url or --poll-only'],
+    [{ runWaterfallEmail: true }, 'need --webhook-url or --poll-only'],
+    [{ runWaterfallPhone: true }, 'need --webhook-url or --poll-only'],
+    [{ pollOnly: true, webhookUrl: 'https://example.com/hook' }, 'not both'],
+  ])('exits instead of sending async flags with no single delivery target: %o', (opts, message) => {
+    const exit = vi.spyOn(process, 'exit').mockImplementation(() => {
+      throw new Error('process.exit');
+    });
+    const error = vi.spyOn(console, 'error').mockImplementation(() => {});
+    try {
+      expect(() => buildRevealFlags(opts)).toThrow('process.exit');
+      expect(exit).toHaveBeenCalledWith(1);
+      expect(error).toHaveBeenCalledWith(expect.stringContaining(message));
+    } finally {
+      exit.mockRestore();
+      error.mockRestore();
+    }
   });
 });

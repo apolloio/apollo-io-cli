@@ -22,6 +22,12 @@ interface EmailIdOptions {
   format?: string;
 }
 
+interface EmailContentOptions {
+  ids: string[];
+  bodyFormat?: string;
+  format?: string;
+}
+
 interface EmailSearchOptions {
   query?: string;
   userIds?: string[];
@@ -96,6 +102,19 @@ export function registerEmails(program: Command): void {
     .option(...FORMAT_OPTION)
     .action(async (opts: EmailIdOptions) => {
       const data = await apolloRequest('/emailer_messages/email_send_status', { id: opts.id });
+      print(data, opts.format);
+    });
+
+  emails
+    .command('content')
+    .description('Get the subject, body, and recipients of sent emails')
+    .requiredOption('--ids <ids...>', 'Sent email (emailer message) ID(s), up to 10 per call')
+    .option('--body-format <format>', 'Body format: plain (default) or html')
+    .option(...FORMAT_OPTION)
+    .action(async (opts: EmailContentOptions) => {
+      const body: Record<string, unknown> = { ids: opts.ids };
+      if (opts.bodyFormat) body.body_format = opts.bodyFormat;
+      const data = await apolloRequest('/emailer_messages/get_content', body);
       print(data, opts.format);
     });
 
